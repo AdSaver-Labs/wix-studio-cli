@@ -1,0 +1,30 @@
+{
+  "name": "@adsaver-labs/wix-studio-ui-cli",
+  "version": "0.1.0",
+  "description": "Safe local CLI scaffold for inspecting and carefully controlling Wix Studio Editor UI through a user-owned browser session.",
+  "type": "module",
+  "bin": {
+    "wix-studio-ui": "./bin/wix-studio-ui-cli.mjs"
+  },
+  "scripts": {
+    "check": "node --check bin/wix-studio-ui-cli.mjs && for f in src/*.mjs; do node --check \"$f\"; done",
+    "smoke": "node bin/wix-studio-ui-cli.mjs --help && node bin/wix-studio-ui-cli.mjs inspect --dry-run && node bin/wix-studio-ui-cli.mjs verification --dry-run"
+  },
+  "keywords": [
+    "wix",
+    "wix-studio",
+    "browser-automation",
+    "cli",
+    "dry-run"
+  ],
+  "author": "AdSaver Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdSaver-Labs/wix-studio-cli.git",
+    "directory": "packages/wix-studio-ui-cli"
+  }
+}

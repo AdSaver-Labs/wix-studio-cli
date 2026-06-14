@@ -1,0 +1,14 @@
+{
+  "name": "@adsaver-labs/wix-blog-cli",
+  "version": "0.1.0",
+  "description": "Public-safe Wix blog planning CLI baseline for repeatable client blog workflows.",
+  "type": "module",
+  "bin": { "wix-blog": "./bin/blogctl.mjs" },
+  "scripts": {
+    "check": "node --check bin/blogctl.mjs",
+    "smoke": "node bin/blogctl.mjs --help"
+  },
+  "keywords": ["wix", "blog", "seo", "cli", "automation"],
+  "license": "MIT",
+  "engines": { "node": ">=22" }
+}

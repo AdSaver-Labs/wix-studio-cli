@@ -1,0 +1,13 @@
+{
+  "name": "wix-studio-cli-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public monorepo for Wix Studio UI CLI experiments and Wix blog automation tooling.",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "check": "npm --workspace packages/wix-studio-ui-cli run check && npm --workspace packages/wix-blog-cli run check",
+    "smoke": "npm --workspace packages/wix-studio-ui-cli run smoke && npm --workspace packages/wix-blog-cli run smoke"
+  },
+  "engines": { "node": ">=22" },
+  "license": "MIT"
+}

@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+dist/
+evidence/
+*.log
+*.jsonl
+secrets/
+browser-profile/
+user-data/
+cookies*
+tokens*
