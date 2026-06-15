@@ -1,0 +1,17 @@
+{
+  "required": ["clientId", "clientName", "website", "languages", "niche", "audiences", "services", "tone", "publishingGate", "researchLanes", "internalLinks"],
+  "fields": {
+    "clientId": "stable slug, e.g. topkvartiri",
+    "clientName": "display name",
+    "website": "public website URL",
+    "languages": "ordered list; primary first",
+    "niche": "short niche summary",
+    "audiences": "target reader segments",
+    "services": "services/offers to connect articles to",
+    "tone": "human writing style rules",
+    "publishingGate": "approval-first | draft-after-qa | publish-after-qa | auto-draft | auto-publish-approved-only",
+    "researchLanes": "weekly source and trend lanes",
+    "internalLinks": "approved pages/posts for contextual linking",
+    "imagePolicy": "required | text-only-explicit; required blocks publish until media adapter is proven"
+  }
+}

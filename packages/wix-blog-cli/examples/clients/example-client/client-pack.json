@@ -1,0 +1,18 @@
+{
+  "clientId": "example-client",
+  "clientName": "Example Client",
+  "website": "https://example.com",
+  "primaryLanguage": "en",
+  "publishingGate": "publish-after-qa",
+  "imagePolicy": "required",
+  "wix": {
+    "status": "CONFIGURED",
+    "siteId": "00000000-0000-0000-0000-000000000000",
+    "baseUrl": "https://example.com",
+    "dashboardPostsUrl": "https://manage.wix.com/dashboard/<site-id>/blog/posts",
+    "primaryLanguage": "en",
+    "secondaryLanguages": [],
+    "imagePolicy": "required",
+    "storagePolicy": "wix-first-receipts-only"
+  }
+}
