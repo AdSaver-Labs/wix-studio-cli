@@ -1,14 +1,35 @@
 {
   "name": "@adsaver-labs/wix-blog-cli",
-  "version": "0.1.0",
-  "description": "Public-safe Wix blog planning CLI baseline for repeatable client blog workflows.",
-  "type": "module",
-  "bin": { "wix-blog": "./bin/blogctl.mjs" },
-  "scripts": {
-    "check": "node --check bin/blogctl.mjs",
-    "smoke": "node bin/blogctl.mjs --help"
+  "version": "0.2.0",
+  "description": "Safety-first Wix Blog CLI for draft creation, verification, approval-gated publishing, and public readback checks.",
+  "type": "commonjs",
+  "bin": {
+    "wix-blog": "./bin/wix-blog.js"
   },
-  "keywords": ["wix", "blog", "seo", "cli", "automation"],
+  "scripts": {
+    "check": "node -e \"const fs=require('fs');const path=require('path');const cp=require('child_process');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):path.join(d,e.name));for(const f of ['bin/wix-blog.js',...walk('src').filter(f=>f.endsWith('.js')),'tests/unit.js']) cp.execFileSync(process.execPath,['--check',f],{stdio:'inherit'});cp.execFileSync(process.execPath,['tests/unit.js'],{stdio:'inherit'});\"",
+    "smoke": "node bin/wix-blog.js --help",
+    "test": "npm run check && npm run smoke"
+  },
+  "keywords": [
+    "wix",
+    "wix-blog",
+    "seo",
+    "cli",
+    "automation",
+    "approval-gate"
+  ],
+  "author": "AdSaver Labs",
   "license": "MIT",
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdSaver-Labs/wix-studio-cli.git",
+    "directory": "packages/wix-blog-cli"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0"
+  }
 }

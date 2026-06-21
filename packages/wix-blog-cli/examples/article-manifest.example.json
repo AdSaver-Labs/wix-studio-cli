@@ -1,0 +1,37 @@
+{
+  "articles": [
+    {
+      "key": "roof-inspection-spring-2026",
+      "language": "en",
+      "title": "Spring Roof Inspection Checklist for Homeowners",
+      "excerpt": "A practical homeowner checklist for spotting roof issues early and deciding when to call a professional.",
+      "slug": "spring-roof-inspection-checklist-homeowners",
+      "focusKeyword": "spring roof inspection checklist",
+      "seoTitle": "Spring Roof Inspection Checklist for Homeowners | Example Client",
+      "metaDescription": "Use this spring roof inspection checklist to catch small roof issues early, reduce repair costs, and know when to call a professional.",
+      "blocks": [
+        {"type": "heading", "level": 2, "text": "Spring roof inspection checklist basics"},
+        {"type": "paragraph", "text": "Inspect flashing, gutters, visible shingles, attic moisture, and drainage after winter. Document issues and schedule repairs before leaks spread. Repeat this spring roof inspection checklist after storms and seasonal weather changes so problems are found early."},
+        {"type": "heading", "level": 2, "text": "Start with a visual ground check"},
+        {"type": "paragraph", "text": "Walk around the property and look for missing shingles, sagging lines, blocked gutters, and visible debris."},
+        {"type": "heading", "level": 2, "text": "Check problem zones"},
+        {"type": "paragraph", "text": "Pay close attention to flashing, valleys, roof penetrations, and previous repair areas."},
+        {"type": "heading", "level": 2, "text": "Watch for moisture signs indoors"},
+        {"type": "paragraph", "text": "Look for stains, mold, soft drywall, or attic condensation."},
+        {"type": "heading", "level": 2, "text": "When to call a professional"},
+        {"type": "paragraph", "text": "If you notice recurring leaks, storm damage, or structural movement, schedule a professional inspection."},
+        {"type": "image", "role": "body", "url": "https://images.unsplash.com/photo-1504307651254-35680f356dfd", "alt": "Inspector reviewing a residential roof in spring"}
+      ],
+      "internalLinks": [
+        {"url": "https://example.com/services", "anchor": "roof repair services"},
+        {"url": "https://example.com/contact", "anchor": "book an inspection"}
+      ],
+      "relatedPostIds": ["example-related-post-id"],
+      "cta": {"url": "https://example.com/contact", "label": "Book an inspection", "heading": "Need a professional roof inspection?"},
+      "images": [
+        {"role": "featured", "url": "https://images.unsplash.com/photo-1504307651254-35680f356dfd", "alt": "Inspector reviewing a residential roof in spring"}
+      ],
+      "ogImage": "https://images.unsplash.com/photo-1504307651254-35680f356dfd"
+    }
+  ]
+}
