@@ -1,14 +1,15 @@
 {
   "name": "@adsaver-labs/wix-studio-ui-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Safe local CLI scaffold for inspecting and carefully controlling Wix Studio Editor UI through a user-owned browser session.",
   "type": "module",
   "bin": {
     "wix-studio-ui": "./bin/wix-studio-ui-cli.mjs"
   },
   "scripts": {
-    "check": "node --check bin/wix-studio-ui-cli.mjs && for f in src/*.mjs; do node --check \"$f\"; done",
-    "smoke": "node bin/wix-studio-ui-cli.mjs --help && node bin/wix-studio-ui-cli.mjs inspect --dry-run && node bin/wix-studio-ui-cli.mjs verification --dry-run"
+    "check": "node --check bin/wix-studio-ui-cli.mjs && for f in src/*.mjs test/*.mjs; do node --check \"$f\"; done",
+    "smoke": "node bin/wix-studio-ui-cli.mjs --help && node bin/wix-studio-ui-cli.mjs inspect --dry-run && node bin/wix-studio-ui-cli.mjs diagnostics --dry-run && node bin/wix-studio-ui-cli.mjs verification --dry-run",
+    "test:guardrails": "node test/smoke-guardrails.mjs"
   },
   "keywords": [
     "wix",

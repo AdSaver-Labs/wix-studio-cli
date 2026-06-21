@@ -1,6 +1,6 @@
 const { WixClient } = require('../wix/client');
 const { getDraft, updateDraft, publishDraft } = require('../wix/posts');
-const { draftPostFromArticle, validateArticle } = require('./articlePayload');
+const { draftPostFromArticle, validateArticle, validateArticleResult, containsKeyword } = require('./articlePayload');
 const { loadClientPack, wixConfigFromClient } = require('./clients');
 const { writeJson, readJson, receiptPath } = require('./receipts');
 const { verifyPublicUrl } = require('./publicVerify');
@@ -10,6 +10,8 @@ const { writeSummary } = require('./summaryCard');
 
 function safeTs(){ return new Date().toISOString().replace(/[:.]/g,'-'); }
 function textFromRichContent(rc){ let out=''; function walk(n){ if(!n)return; if(Array.isArray(n)) return n.forEach(walk); if(n.textData?.text) out += n.textData.text+' '; if(n.nodes) walk(n.nodes); } walk(rc?.nodes||[]); return out.trim(); }
+function headingTextFromRichContent(rc){ return (rc?.nodes||[]).filter(n=>n.type==='HEADING').map(n=>textFromRichContent({nodes:[n]})).join(' | '); }
+function countBodyImages(rc){ let count=0; (function walk(n){ if(!n||typeof n!=='object') return; if(n.imageData) count++; if(Array.isArray(n.nodes)) n.nodes.forEach(walk); })(rc||{}); return count; }
 function getSeoTitle(d){ return (d.seoData?.tags||[]).find(t=>t.type==='title')?.children || ''; }
 function getMeta(d){ return (d.seoData?.tags||[]).find(t=>t.type==='meta' && t.props?.name==='description')?.props?.content || ''; }
 function getFocus(d){ return d.seoData?.settings?.keywords?.find(k=>k.isMain)?.term || d.seoData?.settings?.keywords?.[0]?.term || ''; }
@@ -22,10 +24,16 @@ function qaDraftReceipt(d, context={}){
   const body=textFromRichContent(d.richContent||{});
   const words=body.split(/\s+/).filter(Boolean).length;
   const headings=(d.richContent?.nodes||[]).filter(n=>n.type==='HEADING').length;
+  const headingText=headingTextFromRichContent(d.richContent||{});
+  const focus=getFocus(d);
+  const ogImage=getOgImage(d);
+  const bodyImages=countBodyImages(d.richContent||{});
   const checks=[]; const add=(name, pass, detail='')=>checks.push({name,status:pass?'PASS':'FAIL',detail:String(detail||'')});
   const language=context.language || d.language;
   const imagePolicy=context.imagePolicy || 'required';
-  const mediaPresent=!!(d.media?.wixMedia || getOgImage(d));
+  const minImages=context.minImages ?? 1;
+  const minRelatedPosts=context.minRelatedPosts ?? 1;
+  const mediaPresent=!!(d.media?.wixMedia || ogImage);
   add('status_unpublished', d.status==='UNPUBLISHED', d.status);
   add('body_words_min_500', words>=500, String(words));
   add('headings_min_4', headings>=4, String(headings));
@@ -35,23 +43,82 @@ function qaDraftReceipt(d, context={}){
   add('seo_title_length', getSeoTitle(d).length>0 && getSeoTitle(d).length<=75, `${getSeoTitle(d).length}`);
   add('meta_description_present', !!getMeta(d), getMeta(d));
   add('meta_description_length', getMeta(d).length>=80 && getMeta(d).length<=170, `${getMeta(d).length}`);
-  add('focus_keyword_present', !!getFocus(d), getFocus(d));
+  add('focus_keyword_present', !!focus, focus);
+  add('focus_keyword_in_slug', !!focus && containsKeyword((d.seoSlug||'').replace(/-/g,' '), focus), d.seoSlug||'');
+  add('focus_keyword_in_meta', !!focus && containsKeyword(getMeta(d), focus), getMeta(d));
+  add('focus_keyword_in_seo_title', !!focus && containsKeyword(getSeoTitle(d), focus), getSeoTitle(d));
+  add('focus_keyword_in_subheading', !!focus && containsKeyword(headingText, focus), headingText.slice(0, 220));
   add('no_todo_placeholders', !/\bTODO\b|PLACEHOLDER|Lorem ipsum/i.test(body+' '+d.title+' '+getMeta(d)), '');
   add('internal_link_or_url_present', linkishCount(body)>=1, `${linkishCount(body)}`);
+  add('related_posts_connected', (d.relatedPostIds||[]).length >= minRelatedPosts, `${(d.relatedPostIds||[]).length}/${minRelatedPosts}`);
   if(language==='bg') add('bg_contains_cyrillic', cyrillic(body+d.title), '');
   if(language==='en') add('en_metadata_no_cyrillic', !cyrillic(d.title+' '+getSeoTitle(d)+' '+getMeta(d)), '');
-  if(imagePolicy==='required') add('image_required_present', mediaPresent, mediaPresent?'present':'missing');
+  if(imagePolicy==='required') {
+    add('image_required_present', mediaPresent || bodyImages >= minImages, mediaPresent||bodyImages?`media=${mediaPresent}; bodyImages=${bodyImages}`:'missing');
+    add('body_images_minimum', bodyImages >= minImages, `${bodyImages}/${minImages}`);
+    add('social_share_image_present', !!ogImage || !!d.media?.wixMedia, ogImage || (d.media?.wixMedia?'media.wixMedia':'missing'));
+  }
   else add('image_policy_text_only_allowed', true, imagePolicy);
-  return {ok:checks.every(c=>c.status==='PASS'), words, headings, checks, summary:{title:d.title, seoSlug:d.seoSlug, seoTitle:getSeoTitle(d), metaDescription:getMeta(d), focusKeyword:getFocus(d), imagePolicy, draftHash:draftHash(d)}};
+  return {ok:checks.every(c=>c.status==='PASS'), words, headings, bodyImages, checks, summary:{title:d.title, seoSlug:d.seoSlug, seoTitle:getSeoTitle(d), metaDescription:getMeta(d), focusKeyword:focus, ogImage, relatedPostIds:d.relatedPostIds||[], imagePolicy, draftHash:draftHash(d)}};
 }
 function readManifest(manifestPath, clientId){
   const pack=loadClientPack(clientId);
   const manifest=readJson(manifestPath);
-  const articles=manifest.articles || (Array.isArray(manifest) ? manifest : []);
-  if(!articles.length) throw new Error('ARTICLE_MANIFEST_EMPTY');
+  const rawArticles=manifest.articles || (Array.isArray(manifest) ? manifest : []);
+  if(!rawArticles.length) throw new Error('ARTICLE_MANIFEST_EMPTY');
   const imagePolicy=pack.wix?.imagePolicy || pack.imagePolicy || manifest.imagePolicy || 'required';
-  for (const article of articles) validateArticle({...article, imagePolicy: article.imagePolicy || imagePolicy}, {imagePolicy});
-  return {manifest, articles, imagePolicy};
+  const qaPolicy={
+    imagePolicy,
+    minImages: pack.wix?.minImages ?? pack.minImages ?? manifest.minImages ?? 1,
+    minInternalLinks: pack.wix?.minInternalLinks ?? pack.minInternalLinks ?? manifest.minInternalLinks ?? 1,
+    minRelatedPosts: pack.wix?.minRelatedPosts ?? pack.minRelatedPosts ?? manifest.minRelatedPosts ?? 1,
+    socialShareImage: pack.wix?.socialShareImage || pack.wix?.socialShareLogo || pack.socialShareImage || pack.socialShareLogo || manifest.socialShareImage || manifest.socialShareLogo
+  };
+  const articles=rawArticles.map(article => ({...article, ogImage: article.ogImage || article.socialShareImage || qaPolicy.socialShareImage}));
+  for (const article of articles) validateArticle({...article, imagePolicy: article.imagePolicy || imagePolicy}, qaPolicy);
+  return {manifest, articles, imagePolicy, qaPolicy};
+}
+function auditManifestReadiness(clientId, manifestPath, opts={}){
+  const pack=loadClientPack(clientId);
+  const manifest=readJson(manifestPath);
+  const rawArticles=manifest.articles || (Array.isArray(manifest) ? manifest : []);
+  const imagePolicy=pack.wix?.imagePolicy || pack.imagePolicy || manifest.imagePolicy || 'required';
+  const qaPolicy={
+    imagePolicy,
+    minImages: pack.wix?.minImages ?? pack.minImages ?? manifest.minImages ?? 1,
+    minInternalLinks: pack.wix?.minInternalLinks ?? pack.minInternalLinks ?? manifest.minInternalLinks ?? 1,
+    minRelatedPosts: pack.wix?.minRelatedPosts ?? pack.minRelatedPosts ?? manifest.minRelatedPosts ?? 1,
+    socialShareImage: pack.wix?.socialShareImage || pack.wix?.socialShareLogo || pack.socialShareImage || pack.socialShareLogo || manifest.socialShareImage || manifest.socialShareLogo
+  };
+  const results=rawArticles.map((article) => {
+    const hydrated={...article, ogImage: article.ogImage || article.socialShareImage || qaPolicy.socialShareImage, imagePolicy: article.imagePolicy || imagePolicy};
+    const validation=validateArticleResult(hydrated, qaPolicy);
+    let draftQa=null;
+    if(validation.ok){
+      const draft=draftPostFromArticle(hydrated, qaPolicy);
+      draft.status='UNPUBLISHED';
+      draftQa=qaDraftReceipt(draft,{language:hydrated.language,...qaPolicy});
+    }
+    return {
+      articleKey: hydrated.key || hydrated.slug || hydrated.title,
+      language: hydrated.language || null,
+      slug: hydrated.slug || null,
+      status: validation.ok && (!draftQa || draftQa.ok) ? 'PASS' : 'FAIL',
+      validation,
+      draftQa: draftQa ? { ok:draftQa.ok, words:draftQa.words, headings:draftQa.headings, bodyImages:draftQa.bodyImages, failedChecks:(draftQa.checks||[]).filter(c=>c.status!=='PASS') } : null,
+      recommendedFixes: recommendedArticleFixes(validation, draftQa)
+    };
+  });
+  const outObj={generatedAt:new Date().toISOString(), clientId, sourceManifest:manifestPath, imagePolicy, qaPolicy, count:results.length, passCount:results.filter(r=>r.status==='PASS').length, failCount:results.filter(r=>r.status!=='PASS').length, results};
+  outObj.status=outObj.failCount?'FAIL':'PASS';
+  if(opts.out) writeJson(opts.out,outObj);
+  return {out:opts.out||null, receipt:outObj};
+}
+function recommendedArticleFixes(validation, draftQa){
+  const fixes=[];
+  for(const err of validation.errors||[]) fixes.push(err);
+  for(const check of draftQa?.checks||[]) if(check.status!=='PASS') fixes.push(`${check.name}: ${check.detail}`);
+  return fixes.slice(0,20);
 }
 function existingByKey(clientId){
   const ledger=readJson(ledgerPath(clientId),{articles:[]});
@@ -65,7 +132,7 @@ function resultFromFetched(article, fetched, qa){
 }
 async function createDraftsFromManifest(clientId, manifestPath, opts={}){
   const site=wixConfigFromClient(clientId);
-  const {articles,imagePolicy}=readManifest(manifestPath,clientId);
+  const {articles,imagePolicy,qaPolicy}=readManifest(manifestPath,clientId);
   const known=existingByKey(clientId);
   const client=await WixClient.fromBrowser({site});
   const results=[];
@@ -73,22 +140,22 @@ async function createDraftsFromManifest(clientId, manifestPath, opts={}){
     for(const article of articles){
       const existing=known.get(`${article.key}|${article.language}`);
       if(existing?.draftId && !opts.allowDuplicates){
-        const draftPost={...draftPostFromArticle({...article,imagePolicy}, {imagePolicy}), id:existing.draftId};
+        const draftPost={...draftPostFromArticle({...article,imagePolicy}, qaPolicy), id:existing.draftId};
         await updateDraft(client, existing.draftId, draftPost);
         const fetched=await getDraft(client, existing.draftId);
-        const qa=qaDraftReceipt(fetched,{language:article.language,imagePolicy});
+        const qa=qaDraftReceipt(fetched,{language:article.language,...qaPolicy});
         results.push({...resultFromFetched(article,fetched,qa), operation:'updated_existing_idempotent'});
         continue;
       }
-      const draftPost=draftPostFromArticle({...article,imagePolicy}, {imagePolicy});
+      const draftPost=draftPostFromArticle({...article,imagePolicy}, qaPolicy);
       const json=await client.request('/_api/communities-blog-node-api/v3/draft-posts',{method:'POST',body:JSON.stringify({draftPost, fieldsets:['RICH_CONTENT','URL','TRANSLATIONS']})});
       const d=json.draftPost;
       const fetched=await getDraft(client,d.id);
-      const qa=qaDraftReceipt(fetched,{language:article.language,imagePolicy});
+      const qa=qaDraftReceipt(fetched,{language:article.language,...qaPolicy});
       results.push({...resultFromFetched(article,fetched,qa), operation:'created'});
     }
   } finally { await client.close(); }
-  const receipt={generatedAt:new Date().toISOString(), clientId, site, sourceManifest:manifestPath, imagePolicy, count:results.length, passCount:results.filter(r=>r.qa.ok).length, failCount:results.filter(r=>!r.qa.ok).length, results};
+  const receipt={generatedAt:new Date().toISOString(), clientId, site, sourceManifest:manifestPath, imagePolicy, qaPolicy, count:results.length, passCount:results.filter(r=>r.qa.ok).length, failCount:results.filter(r=>!r.qa.ok).length, results};
   receipt.receiptHash=receiptFingerprint(receipt);
   const out=opts.out || receiptPath(clientId, `wix-draft-create-${safeTs()}.json`);
   writeJson(out, receipt); receipt.ledgerPath=appendLedger(clientId, receipt, 'draft-create'); receipt.summaryPath=writeSummary(clientId, receipt, 'draft-create'); writeJson(out, receipt);
@@ -96,7 +163,7 @@ async function createDraftsFromManifest(clientId, manifestPath, opts={}){
 }
 async function updateDraftsFromManifest(clientId, manifestPath, receiptFile, opts={}){
   const site=wixConfigFromClient(clientId);
-  const {articles,imagePolicy}=readManifest(manifestPath,clientId);
+  const {articles,imagePolicy,qaPolicy}=readManifest(manifestPath,clientId);
   const previous=readJson(receiptFile);
   const byKey=new Map((previous.results||[]).map(r=>[r.articleKey,r]));
   const client=await WixClient.fromBrowser({site});
@@ -105,14 +172,14 @@ async function updateDraftsFromManifest(clientId, manifestPath, receiptFile, opt
     for(const article of articles){
       const prior=byKey.get(article.key || article.slug);
       if(!prior?.draftId) throw new Error(`DRAFT_ID_NOT_FOUND_FOR_ARTICLE ${article.key || article.slug}`);
-      const draftPost={...draftPostFromArticle({...article,imagePolicy},{imagePolicy}), id:prior.draftId};
+      const draftPost={...draftPostFromArticle({...article,imagePolicy},qaPolicy), id:prior.draftId};
       await updateDraft(client, prior.draftId, draftPost);
       const fetched=await getDraft(client, prior.draftId);
-      const qa=qaDraftReceipt(fetched,{language:article.language,imagePolicy});
+      const qa=qaDraftReceipt(fetched,{language:article.language,...qaPolicy});
       results.push({...resultFromFetched(article,fetched,qa), operation:'updated'});
     }
   } finally { await client.close(); }
-  const receipt={generatedAt:new Date().toISOString(), clientId, site, sourceManifest:manifestPath, sourceReceipt:receiptFile, imagePolicy, count:results.length, passCount:results.filter(r=>r.qa.ok).length, failCount:results.filter(r=>!r.qa.ok).length, results};
+  const receipt={generatedAt:new Date().toISOString(), clientId, site, sourceManifest:manifestPath, sourceReceipt:receiptFile, imagePolicy, qaPolicy, count:results.length, passCount:results.filter(r=>r.qa.ok).length, failCount:results.filter(r=>!r.qa.ok).length, results};
   receipt.receiptHash=receiptFingerprint(receipt);
   const out=opts.out || receiptPath(clientId, `wix-draft-update-${safeTs()}.json`);
   writeJson(out, receipt); receipt.ledgerPath=appendLedger(clientId, receipt, 'draft-update'); receipt.summaryPath=writeSummary(clientId, receipt, 'draft-update'); writeJson(out, receipt);
@@ -121,18 +188,73 @@ async function updateDraftsFromManifest(clientId, manifestPath, receiptFile, opt
 async function verifyDraftReceipt(clientId, receiptFile, opts={}){
   const site=wixConfigFromClient(clientId); const imagePolicy=imagePolicyFor(clientId);
   const receipt=readJson(receiptFile);
+  const qaPolicy=receipt.qaPolicy || {imagePolicy: receipt.imagePolicy || imagePolicy};
   const client=await WixClient.fromBrowser({site});
   const checks=[];
   try{
     for(const r of receipt.results || []){
       const d=await getDraft(client,r.draftId);
-      checks.push({...r, status:d.status, title:d.title, seoSlug:d.seoSlug, url:d.url, draftHash:draftHash(d), qa:qaDraftReceipt(d,{language:r.language,imagePolicy:receipt.imagePolicy||imagePolicy})});
+      checks.push({...r, status:d.status, title:d.title, seoSlug:d.seoSlug, url:d.url, draftHash:draftHash(d), qa:qaDraftReceipt(d,{language:r.language,...qaPolicy})});
     }
   } finally { await client.close(); }
-  const outObj={generatedAt:new Date().toISOString(), clientId, sourceReceipt:receiptFile, imagePolicy:receipt.imagePolicy||imagePolicy, count:checks.length, passCount:checks.filter(r=>r.qa.ok).length, failCount:checks.filter(r=>!r.qa.ok).length, results:checks};
+  const outObj={generatedAt:new Date().toISOString(), clientId, sourceReceipt:receiptFile, imagePolicy:receipt.imagePolicy||imagePolicy, qaPolicy, count:checks.length, passCount:checks.filter(r=>r.qa.ok).length, failCount:checks.filter(r=>!r.qa.ok).length, results:checks};
   outObj.receiptHash=receiptFingerprint(outObj);
   const out=opts.out || receiptPath(clientId, `wix-draft-verify-${safeTs()}.json`);
   writeJson(out, outObj); outObj.ledgerPath=appendLedger(clientId, outObj, 'draft-verify'); outObj.summaryPath=writeSummary(clientId, outObj, 'draft-verify'); writeJson(out, outObj);
+  return {out, receipt:outObj};
+}
+function comparableDraftFields(d){
+  return {title:d.title||'', excerpt:d.excerpt||'', seoSlug:d.seoSlug||'', seoTitle:getSeoTitle(d), metaDescription:getMeta(d), focusKeyword:getFocus(d), relatedPostIds:d.relatedPostIds||[], bodyText:textFromRichContent(d.richContent||{}), headingText:headingTextFromRichContent(d.richContent||{}), bodyImages:countBodyImages(d.richContent||{}), ogImage:getOgImage(d), draftHash:draftHash(d)};
+}
+function diffValues(name, expected, actual){
+  const same=JSON.stringify(expected)===JSON.stringify(actual);
+  return same ? null : {field:name,status:'DIFF',expected,actual};
+}
+function diffDraftFields(expectedDraft, actualDraft){
+  const expected=comparableDraftFields(expectedDraft);
+  const actual=comparableDraftFields(actualDraft);
+  return Object.keys(expected).map(k=>diffValues(k, expected[k], actual[k])).filter(Boolean);
+}
+async function snapshotDraftsFromReceipt(clientId, receiptFile, opts={}){
+  const site=wixConfigFromClient(clientId);
+  const receipt=readJson(receiptFile);
+  const client=await WixClient.fromBrowser({site});
+  const results=[];
+  try{
+    for(const r of receipt.results || []){
+      const d=await getDraft(client,r.draftId);
+      results.push({...r, operation:'snapshot', capturedAt:new Date().toISOString(), current:comparableDraftFields(d), qa:qaDraftReceipt(d,{language:r.language,...(receipt.qaPolicy || {imagePolicy:receipt.imagePolicy||imagePolicyFor(clientId)})})});
+    }
+  } finally { await client.close(); }
+  const outObj={generatedAt:new Date().toISOString(), clientId, sourceReceipt:receiptFile, purpose:'before-state-snapshot', count:results.length, results};
+  outObj.receiptHash=receiptFingerprint(outObj);
+  const out=opts.out || receiptPath(clientId, `wix-draft-snapshot-${safeTs()}.json`);
+  writeJson(out,outObj); outObj.ledgerPath=appendLedger(clientId,outObj,'draft-snapshot'); writeJson(out,outObj);
+  return {out, receipt:outObj};
+}
+async function diffDraftsFromManifest(clientId, manifestPath, receiptFile, opts={}){
+  const site=wixConfigFromClient(clientId);
+  const {articles,imagePolicy,qaPolicy}=readManifest(manifestPath,clientId);
+  const receipt=readJson(receiptFile);
+  const byKey=new Map((receipt.results||[]).map(r=>[r.articleKey,r]));
+  const client=await WixClient.fromBrowser({site});
+  const results=[];
+  try{
+    for(const article of articles){
+      const key=article.key || article.slug;
+      const prior=byKey.get(key);
+      if(!prior?.draftId){ results.push({articleKey:key,status:'MISSING_DRAFT_ID',diffs:[{field:'draftId',status:'MISSING'}]}); continue; }
+      const expected=draftPostFromArticle({...article,imagePolicy},qaPolicy);
+      const actual=await getDraft(client,prior.draftId);
+      const diffs=diffDraftFields(expected,actual);
+      const qa=qaDraftReceipt(actual,{language:article.language,...qaPolicy});
+      results.push({articleKey:key,language:article.language,draftId:prior.draftId,status:diffs.length || !qa.ok ? 'DIFF' : 'MATCH',diffCount:diffs.length,diffs,qa,currentDraftHash:draftHash(actual),expectedDraftHash:draftHash(expected)});
+    }
+  } finally { await client.close(); }
+  const outObj={generatedAt:new Date().toISOString(), clientId, sourceManifest:manifestPath, sourceReceipt:receiptFile, imagePolicy, qaPolicy, count:results.length, matchCount:results.filter(r=>r.status==='MATCH').length, diffCount:results.filter(r=>r.status!=='MATCH').length, results};
+  outObj.receiptHash=receiptFingerprint(outObj);
+  const out=opts.out || receiptPath(clientId, `wix-draft-diff-${safeTs()}.json`);
+  writeJson(out,outObj); outObj.ledgerPath=appendLedger(clientId,outObj,'draft-diff'); outObj.summaryPath=writeSummary(clientId,outObj,'draft-diff'); writeJson(out,outObj);
   return {out, receipt:outObj};
 }
 function validateApprovalManifest(clientId, approvalPath, draftReceipt){
@@ -176,7 +298,7 @@ async function publishFromReceipt(clientId, receiptFile, approvalPath, opts={}){
     for(const r of draftReceipt.results || []){
       if(!allow.has(r.draftId)) continue;
       const before=await getDraft(client,r.draftId);
-      const qa=qaDraftReceipt(before,{language:r.language,imagePolicy:draftReceipt.imagePolicy||imagePolicyFor(clientId)});
+      const qa=qaDraftReceipt(before,{language:r.language,...(draftReceipt.qaPolicy || {imagePolicy:draftReceipt.imagePolicy||imagePolicyFor(clientId)})});
       if(!qa.ok) throw new Error(`QA_FAILED_REFUSING_PUBLISH ${r.draftId}`);
       if(r.draftHash && draftHash(before)!==r.draftHash) throw new Error(`DRAFT_CHANGED_AFTER_QA_REFUSING_PUBLISH ${r.draftId}`);
       const published=await publishDraft(client,r.draftId);
@@ -206,4 +328,4 @@ async function preparePacket(clientId, manifestPath, opts={}){
   const summaryPath = writeSummary(clientId, verify.receipt, 'prepare-packet');
   return {status: verify.receipt.failCount ? 'FAIL' : 'PASS', clientId, draftReceipt:createOrUpdate.out, verifyReceipt:verify.out, approvalTemplate:approval.out, summaryPath, count:verify.receipt.count, passCount:verify.receipt.passCount, failCount:verify.receipt.failCount, receiptHash:verify.receipt.receiptHash};
 }
-module.exports = { createDraftsFromManifest, updateDraftsFromManifest, verifyDraftReceipt, publishFromReceipt, verifyPublicFromReceipt, qaDraftReceipt, approvalTemplate, preparePacket };
+module.exports = { createDraftsFromManifest, updateDraftsFromManifest, verifyDraftReceipt, snapshotDraftsFromReceipt, diffDraftsFromManifest, publishFromReceipt, verifyPublicFromReceipt, qaDraftReceipt, approvalTemplate, preparePacket, readManifest, auditManifestReadiness };

@@ -7,14 +7,24 @@ const { readJson, writeJson, ensure, dataDir, ts } = require('../src/runner/file
 const { qaDraft } = require('../src/qa/qaPost');
 const { getPost, getDraft } = require('../src/wix/posts');
 const { writeArticlePlan } = require('../src/brand/topkvartiri');
-const { createDraftsFromManifest, updateDraftsFromManifest, verifyDraftReceipt, publishFromReceipt, verifyPublicFromReceipt, approvalTemplate, preparePacket } = require('../src/clientBlog/wixArticleOps');
-const { validateArticle } = require('../src/clientBlog/articlePayload');
+const { createDraftsFromManifest, updateDraftsFromManifest, verifyDraftReceipt, snapshotDraftsFromReceipt, diffDraftsFromManifest, publishFromReceipt, verifyPublicFromReceipt, approvalTemplate, preparePacket, readManifest, auditManifestReadiness } = require('../src/clientBlog/wixArticleOps');
 const { discoverSiteConfig, applyDiscoveredConfig } = require('../src/clientBlog/discoverSite');
 const { clientStatus } = require('../src/clientBlog/status');
 const { verifyRenderedReceipt } = require('../src/clientBlog/renderVerify');
 const { clientPackPath } = require('../src/clientBlog/clients');
+const { receiptFingerprint } = require('../src/clientBlog/hash');
 
 function parse(argv){ const out={_:[]}; for(let i=2;i<argv.length;i++){ const a=argv[i]; if(a.startsWith('--')){ const k=a.slice(2); const n=argv[i+1]; if(!n||n.startsWith('--')) out[k]=true; else out[k]=n,i++; } else out._.push(a); } return out; }
+function print(obj){ console.log(JSON.stringify(obj,null,2)); }
+function assertNoDryRun(args, command, detail='') { if(args['dry-run']) { print({status:'DRY_RUN', command, mutationBlocked:true, detail: detail || 'No Wix/client files were modified.'}); return true; } return false; }
+function receiptValidation(receiptFile){
+  const receipt=JSON.parse(fs.readFileSync(receiptFile,'utf8'));
+  const warnings=[];
+  for(const field of ['generatedAt','clientId','count','results']) if(receipt[field] === undefined) warnings.push(`missing ${field}`);
+  let hashStatus='NOT_PRESENT';
+  if(receipt.receiptHash){ const expected=receiptFingerprint(receipt); hashStatus = expected === receipt.receiptHash ? 'PASS' : 'FAIL'; if(hashStatus==='FAIL') warnings.push(`receiptHash mismatch expected ${expected}`); }
+  return {status: warnings.length?'FAIL':'PASS', receiptFile, clientId:receipt.clientId||null, count:receipt.count ?? (receipt.results||[]).length, hashStatus, warnings};
+}
 function usage(){ console.log(`wix-blog commands:
   discover
   plan --limit N | --post ID
@@ -24,23 +34,29 @@ function usage(){ console.log(`wix-blog commands:
   run --limit N | --post ID --mode plan|draft|publish [--approved]
 
   # Wix-first client article workflow
+  doctor [--client <id>]
   discover-site-config --client <id> [--out receipt.json]
   apply-site-config --client <id> --discovery <site-discovery-receipt.json>
   status --client <id>
   next --client <id>
   validate-manifest --client <id> --manifest <article-manifest.json>
+  audit-manifest --client <id> --manifest <article-manifest.json> [--out receipt.json]
   prepare-packet --client <id> --manifest <article-manifest.json> [--receipt existing-draft-receipt.json]
   create-wix-drafts --client <id> --manifest <article-manifest.json> [--out receipt.json]
   update-wix-drafts --client <id> --manifest <article-manifest.json> --receipt <draft-receipt.json> [--out receipt.json]
+  snapshot-wix-drafts --client <id> --receipt <draft-receipt.json> [--out receipt.json]
+  diff-wix-drafts --client <id> --manifest <article-manifest.json> --receipt <draft-receipt.json> [--out receipt.json]
   verify-wix-drafts --client <id> --receipt <draft-receipt.json> [--out receipt.json]
   verify-rendered --receipt <draft-or-publish-receipt.json> [--out receipt.json]
+  receipt-validate --receipt <receipt.json>
   approval-template --client <id> --receipt <verified-draft-receipt.json> [--out approval.json]
   upload-images --client <id> --manifest <image-manifest.json>
   attach-images --client <id> --draft-receipt <receipt.json> --image-receipt <receipt.json>
   publish --client <id> --draft-receipt <receipt.json> --approval-manifest <approval.json> [--out receipt.json]
   verify-public --receipt <publish-receipt.json> [--out receipt.json]
 
-Defaults are safe: no publish unless approval manifest has approved=true, publishAfterQa=true, qa.status=PASS, and matching draft IDs.`); }
+Defaults are safe: no publish unless approval manifest has approved=true, publishAfterQa=true, qa.status=PASS, and matching draft IDs.
+Mutation commands accept --dry-run to validate inputs and stop before writes/API mutations.`); }
 async function withClient(fn){ const client=await WixClient.fromBrowser(); try{return await fn(client);} finally{await client.close();} }
 async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!cmd||args.help){usage(); return;} const batchId=args.batch || `batch-${ts()}`;
  if(cmd==='discover') return await withClient(async c=>{ const r=await discover(c); console.log(JSON.stringify({status:'PASS',command:'discover',counts:r.counts,files:r.files},null,2)); });
@@ -54,15 +70,22 @@ async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!
    const s = clientStatus(args.client);
    console.log(JSON.stringify({status:s.blockers.length?'BLOCKED':'PASS', command:cmd, ...s}, null, 2)); return;
  }
+ if(cmd==='doctor') {
+   const checks=[]; const add=(name, ok, detail='')=>checks.push({name,status:ok?'PASS':'FAIL',detail:String(detail||'')});
+   add('node_version_gte_22', Number(process.versions.node.split('.')[0]) >= 22, process.version);
+   add('cdp_url_configured', !!process.env.WIX_CDP_URL, process.env.WIX_CDP_URL || 'default http://127.0.0.1:18800 will be used');
+   if(args.client){ try{ const s=clientStatus(args.client); add('client_pack_loads', true, args.client); add('client_wix_configured', !s.blockers.includes('CONFIG_MISSING'), s.blockers.join(',')||'configured'); } catch(e){ add('client_pack_loads', false, e.message); } }
+   print({status:checks.every(c=>c.status==='PASS')?'PASS':'BLOCKED', command:cmd, checks}); return;
+ }
  if(cmd==='validate-manifest') {
    if(!args.client || !args.manifest) throw new Error('validate-manifest requires --client <id> --manifest <article-manifest.json>');
-   const pack = JSON.parse(fs.readFileSync(clientPackPath(args.client), 'utf8'));
-   const imagePolicy = pack.wix?.imagePolicy || pack.imagePolicy || 'required';
-   const manifest = JSON.parse(fs.readFileSync(args.manifest, 'utf8'));
-   const articles = manifest.articles || (Array.isArray(manifest) ? manifest : []);
-   if(!articles.length) throw new Error('ARTICLE_MANIFEST_EMPTY');
-   for(const article of articles) validateArticle({...article, imagePolicy: article.imagePolicy || imagePolicy}, {imagePolicy});
-   console.log(JSON.stringify({status:'PASS',command:cmd,client:args.client,count:articles.length,imagePolicy},null,2)); return;
+   const {articles,imagePolicy,qaPolicy}=readManifest(args.manifest,args.client);
+   console.log(JSON.stringify({status:'PASS',command:cmd,client:args.client,count:articles.length,imagePolicy,qaPolicy},null,2)); return;
+ }
+ if(cmd==='audit-manifest') {
+   if(!args.client || !args.manifest) throw new Error('audit-manifest requires --client <id> --manifest <article-manifest.json>');
+   const r = auditManifestReadiness(args.client, args.manifest, {out:args.out});
+   console.log(JSON.stringify({status:r.receipt.status,command:cmd,out:r.out,count:r.receipt.count,passCount:r.receipt.passCount,failCount:r.receipt.failCount,results:r.receipt.results.map(x=>({articleKey:x.articleKey,language:x.language,status:x.status,recommendedFixes:x.recommendedFixes}))},null,2)); return;
  }
  if(cmd==='discover-site-config') {
    if(!args.client) throw new Error('discover-site-config requires --client <id>');
@@ -71,6 +94,7 @@ async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!
  }
  if(cmd==='apply-site-config') {
    if(!args.client || !args.discovery) throw new Error('apply-site-config requires --client <id> --discovery <site-discovery-receipt.json>');
+   if(assertNoDryRun(args, cmd, `Validated discovery receipt path only: ${args.discovery}`)) return;
    const r = applyDiscoveredConfig(args.client, args.discovery);
    console.log(JSON.stringify({status:'PASS',command:cmd,...r},null,2)); return;
  }
@@ -81,13 +105,25 @@ async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!
  }
  if(cmd==='create-wix-drafts') {
    if(!args.client || !args.manifest) throw new Error('create-wix-drafts requires --client <id> --manifest <article-manifest.json>');
+   if(args['dry-run']) { const {articles,imagePolicy,qaPolicy}=readManifest(args.manifest,args.client); print({status:'DRY_RUN',command:cmd,mutationBlocked:true,client:args.client,count:articles.length,imagePolicy,qaPolicy,next:'Run without --dry-run only after manifest review and approval to create/update Wix drafts.'}); return; }
    const r = await createDraftsFromManifest(args.client, args.manifest, {out:args.out});
    console.log(JSON.stringify({status:r.receipt.failCount?'FAIL':'PASS',command:cmd,out:r.out,summaryPath:r.receipt.summaryPath,count:r.receipt.count,passCount:r.receipt.passCount,failCount:r.receipt.failCount,receiptHash:r.receipt.receiptHash},null,2)); return;
  }
  if(cmd==='update-wix-drafts') {
    if(!args.client || !args.manifest || !args.receipt) throw new Error('update-wix-drafts requires --client <id> --manifest <article-manifest.json> --receipt <draft-receipt.json>');
+   if(args['dry-run']) { const {articles,imagePolicy,qaPolicy}=readManifest(args.manifest,args.client); const prior=JSON.parse(fs.readFileSync(args.receipt,'utf8')); print({status:'DRY_RUN',command:cmd,mutationBlocked:true,client:args.client,count:articles.length,sourceReceipt:args.receipt,sourceReceiptCount:prior.count ?? (prior.results||[]).length,imagePolicy,qaPolicy,next:'Run without --dry-run only after reviewing target draft IDs.'}); return; }
    const r = await updateDraftsFromManifest(args.client, args.manifest, args.receipt, {out:args.out});
    console.log(JSON.stringify({status:r.receipt.failCount?'FAIL':'PASS',command:cmd,out:r.out,summaryPath:r.receipt.summaryPath,count:r.receipt.count,passCount:r.receipt.passCount,failCount:r.receipt.failCount,receiptHash:r.receipt.receiptHash},null,2)); return;
+ }
+ if(cmd==='snapshot-wix-drafts') {
+   if(!args.client || !args.receipt) throw new Error('snapshot-wix-drafts requires --client <id> --receipt <draft-receipt.json>');
+   const r = await snapshotDraftsFromReceipt(args.client, args.receipt, {out:args.out});
+   console.log(JSON.stringify({status:'PASS',command:cmd,out:r.out,count:r.receipt.count,receiptHash:r.receipt.receiptHash,purpose:r.receipt.purpose},null,2)); return;
+ }
+ if(cmd==='diff-wix-drafts') {
+   if(!args.client || !args.manifest || !args.receipt) throw new Error('diff-wix-drafts requires --client <id> --manifest <article-manifest.json> --receipt <draft-receipt.json>');
+   const r = await diffDraftsFromManifest(args.client, args.manifest, args.receipt, {out:args.out});
+   console.log(JSON.stringify({status:r.receipt.diffCount?'DIFF':'MATCH',command:cmd,out:r.out,summaryPath:r.receipt.summaryPath,count:r.receipt.count,matchCount:r.receipt.matchCount,diffCount:r.receipt.diffCount,receiptHash:r.receipt.receiptHash},null,2)); return;
  }
  if(cmd==='verify-wix-drafts') {
    if(!args.client || !args.receipt) throw new Error('verify-wix-drafts requires --client <id> --receipt <draft-receipt.json>');
@@ -98,6 +134,10 @@ async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!
    if(!args.receipt) throw new Error('verify-rendered requires --receipt <receipt.json>');
    const r = await verifyRenderedReceipt(args.receipt, {out:args.out});
    console.log(JSON.stringify({status:r.receipt.failCount?'FAIL':'PASS',command:cmd,out:r.out,count:r.receipt.count,passCount:r.receipt.passCount,failCount:r.receipt.failCount},null,2)); return;
+ }
+ if(cmd==='receipt-validate') {
+   if(!args.receipt) throw new Error('receipt-validate requires --receipt <receipt.json>');
+   print({command:cmd, ...receiptValidation(args.receipt)}); return;
  }
  if(cmd==='approval-template') {
    if(!args.client || !args.receipt) throw new Error('approval-template requires --client <id> --receipt <verified-draft-receipt.json>');
@@ -114,6 +154,7 @@ async function main(){ const args=parse(process.argv); const cmd=args._[0]; if(!
  }
  if(cmd==='publish') {
    if(!args.client || !args['draft-receipt'] || !args['approval-manifest']) throw new Error('publish requires --client <id> --draft-receipt <receipt.json> --approval-manifest <approval.json>');
+   if(args['dry-run']) { const draftReceipt=JSON.parse(fs.readFileSync(args['draft-receipt'],'utf8')); const approval=JSON.parse(fs.readFileSync(args['approval-manifest'],'utf8')); print({status:'DRY_RUN',command:cmd,mutationBlocked:true,client:args.client,draftReceipt:args['draft-receipt'],approvalManifest:args['approval-manifest'],approval:{approved:approval.approved,publishAfterQa:approval.publishAfterQa,qa:approval.qa?.status,draftIds:(approval.draftIds||[]).length},draftReceiptStatus:{count:draftReceipt.count,passCount:draftReceipt.passCount,failCount:draftReceipt.failCount},next:'Publishing remains blocked until this command is run without --dry-run using an approved manifest.'}); return; }
    const r = await publishFromReceipt(args.client, args['draft-receipt'], args['approval-manifest'], {out:args.out});
    console.log(JSON.stringify({status:r.receipt.failCount?'FAIL':'PASS',command:cmd,out:r.out,count:r.receipt.count,passCount:r.receipt.passCount,failCount:r.receipt.failCount},null,2)); return;
  }

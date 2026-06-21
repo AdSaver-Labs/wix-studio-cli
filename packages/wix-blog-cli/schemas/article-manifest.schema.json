@@ -22,8 +22,11 @@
           "excerpt": {"type": "string", "minLength": 20},
           "sourceNotes": {"type": "array", "items": {"type": "string"}},
           "internalLinks": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["url"], "properties": {"url": {"type": "string"}, "anchor": {"type": "string"}, "label": {"type": "string"}}}},
+          "relatedPostIds": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
           "cta": {"type": "object", "required": ["url", "label"], "properties": {"url": {"type": "string"}, "label": {"type": "string"}, "heading": {"type": "string"}}},
-          "images": {"type": "array", "items": {"type": "object", "required": ["role", "alt"], "properties": {"role": {"type": "string"}, "alt": {"type": "string"}, "wixMedia": {"type": "object"}}}},
+          "images": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["role", "alt"], "properties": {"role": {"type": "string"}, "alt": {"type": "string"}, "caption": {"type": "string"}, "url": {"type": "string"}, "src": {"type": "string"}, "assetUrl": {"type": "string"}, "wixMedia": {"type": "object"}}}},
+          "ogImage": {"type": "string"},
+          "socialShareImage": {"type": "string"},
           "blocks": {"type": "array", "minItems": 6}
         }
       }

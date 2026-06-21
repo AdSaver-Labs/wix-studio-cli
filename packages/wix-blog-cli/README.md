@@ -85,6 +85,7 @@ examples/article-manifest.example.json
 ### 3) Inspect current safe status
 
 ```bash
+wix-blog doctor --client example-client
 wix-blog status --client example-client
 wix-blog next --client example-client
 ```
@@ -93,6 +94,20 @@ wix-blog next --client example-client
 
 ```bash
 wix-blog validate-manifest --client example-client --manifest examples/article-manifest.example.json
+```
+
+The manifest gate is intentionally strict for client article work. Required-image clients must prove:
+
+- focus keyword in slug, SEO title, meta description, and at least one subheading
+- at least one article image with role + alt text
+- social share image/logo evidence via `ogImage`, `socialShareImage`, or client pack fallback
+- related posts via `relatedPostIds`
+- internal links and CTA
+
+Use `--dry-run` on mutation commands to validate inputs while blocking writes/API mutation:
+
+```bash
+wix-blog create-wix-drafts --client example-client --manifest examples/article-manifest.example.json --dry-run
 ```
 
 ### 5) Create drafts in Wix
@@ -105,6 +120,12 @@ wix-blog create-wix-drafts --client example-client --manifest examples/article-m
 
 ```bash
 wix-blog verify-wix-drafts --client example-client --receipt receipts/example-create.json --out receipts/example-verify.json
+```
+
+Validate a receipt before reusing it in later steps:
+
+```bash
+wix-blog receipt-validate --receipt receipts/example-verify.json
 ```
 
 ### 7) Generate approval template
@@ -154,6 +175,8 @@ Recommended loop:
 - Persist receipts so later runs can resume safely
 - Prefer `prepare-packet` for a compact create/update → verify → approval-template bundle
 - Use `verify-rendered` or `verify-public` before claiming success
+- Use `doctor`, `validate-manifest`, `--dry-run`, and `receipt-validate` before any mutation/publish step
+- Do not claim article completion unless image/social/related-post/focus-keyword checks pass in the receipt
 
 ## Browser / CDP setup
 
@@ -203,6 +226,7 @@ wix-blog --help
 ```
 
 Key client-workflow commands:
+- `doctor`
 - `discover-site-config`
 - `apply-site-config`
 - `status`
@@ -213,6 +237,7 @@ Key client-workflow commands:
 - `update-wix-drafts`
 - `verify-wix-drafts`
 - `verify-rendered`
+- `receipt-validate`
 - `approval-template`
 - `publish`
 - `verify-public`

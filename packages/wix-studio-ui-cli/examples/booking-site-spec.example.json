@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "siteType": "booking-site",
+  "businessName": "Top Kvartiri Test Booking Site",
+  "primaryLanguage": "en",
+  "secondaryLanguages": ["bg"],
+  "brand": {
+    "tone": "premium, clear, trustworthy",
+    "colors": ["#10253F", "#F2C14E", "#F7F3EA"],
+    "fonts": ["Inter", "Playfair Display"]
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Premium Stays in Bansko and Sofia",
+      "slug": "home",
+      "sections": ["hero", "trust", "featured-properties", "how-it-works", "cta"],
+      "seo": {
+        "title": "Premium Stays in Bansko and Sofia | Top Kvartiri",
+        "metaDescription": "Book trusted short-term apartments in Bansko and Sofia with clear details, professional hosting, and direct reservation support."
+      }
+    },
+    {
+      "id": "properties",
+      "title": "Available Apartments",
+      "slug": "properties",
+      "sections": ["property-grid", "filters", "cta"],
+      "seo": {
+        "title": "Available Apartments in Bulgaria | Top Kvartiri",
+        "metaDescription": "Browse verified short-term rental apartments in Bulgaria with amenities, photos, location details, and simple booking options."
+      }
+    },
+    {
+      "id": "property-detail",
+      "title": "Property Detail",
+      "slug": "properties/pirin-golf-studio-velvet",
+      "sections": ["property-hero", "gallery", "amenities", "booking-widget", "location", "faq"],
+      "seo": {
+        "title": "Pirin Golf Studio Velvet in Bansko | Top Kvartiri",
+        "metaDescription": "Explore Pirin Golf Studio Velvet near Bansko with photos, amenities, location information, and direct booking details."
+      }
+    },
+    {
+      "id": "booking",
+      "title": "Book Your Stay",
+      "slug": "booking",
+      "sections": ["booking-widget", "booking-support", "faq"],
+      "seo": {
+        "title": "Book Your Bulgaria Apartment Stay | Top Kvartiri",
+        "metaDescription": "Reserve your apartment stay in Bulgaria through a clear booking process with support from the Top Kvartiri hosting team."
+      }
+    },
+    {
+      "id": "contact",
+      "title": "Contact Top Kvartiri",
+      "slug": "contact",
+      "sections": ["contact-form", "direct-contact", "map"],
+      "seo": {
+        "title": "Contact Top Kvartiri | Apartment Booking Support",
+        "metaDescription": "Contact Top Kvartiri for apartment booking support, availability questions, owner inquiries, and short-term rental assistance."
+      }
+    }
+  ],
+  "sections": {
+    "hero": {"intent": "Clear premium booking promise with primary CTA to view apartments and secondary CTA to contact support."},
+    "trust": {"intent": "Show verified properties, professional hosting, guest support, and transparent booking."},
+    "featured-properties": {"intent": "Feature the strongest property cards with image, location, amenities, and booking CTA."},
+    "how-it-works": {"intent": "Explain browse, choose dates, book, and receive check-in support."},
+    "cta": {"intent": "Repeat direct booking/contact CTA."},
+    "property-grid": {"intent": "Scannable apartment cards."},
+    "filters": {"intent": "Location and guest-count filtering when technically available."},
+    "property-hero": {"intent": "Property title, location, hero image, rating/trust markers, booking CTA."},
+    "gallery": {"intent": "Large visual gallery for the apartment."},
+    "amenities": {"intent": "Amenities grouped by comfort, kitchen, parking, internet, and building features."},
+    "booking-widget": {"intent": "Hospitable or equivalent booking iframe/widget in draft/test mode first."},
+    "location": {"intent": "Map/location context and nearby reasons to book."},
+    "faq": {"intent": "Arrival, payment, cancellation, check-in, and support FAQs."},
+    "booking-support": {"intent": "Clarify booking help and fallback contact route."},
+    "contact-form": {"intent": "Simple inquiry form with name, email/phone, dates, and message."},
+    "direct-contact": {"intent": "Phone/email/WhatsApp or approved contact routes."},
+    "map": {"intent": "Location/contact map block."}
+  },
+  "properties": [
+    {
+      "id": "pirin-golf-studio-velvet",
+      "name": "Pirin Golf Studio Velvet",
+      "location": "Pirin Golf & Country Club, near Bansko, Bulgaria",
+      "bookingUrl": "https://booking.hospitable.com/widget/a205629b-103f-448a-86fb-f42ff69e0e00/2313595",
+      "amenities": ["Wi-Fi", "Kitchen", "Mountain access", "Resort location"],
+      "images": ["property-hero.jpg"]
+    }
+  ],
+  "integrations": {
+    "hospitable": {
+      "mode": "iframe-widget",
+      "testFirst": true
+    }
+  },
+  "proofGates": ["desktop-screenshot", "mobile-screenshot", "save-state", "public-seo-proof"],
+  "constraints": [
+    "No production/client-site mutation before test-site proof.",
+    "No publish without Alej approval.",
+    "No booking/payment/order mutation without explicit approval and sandbox/test evidence."
+  ]
+}
