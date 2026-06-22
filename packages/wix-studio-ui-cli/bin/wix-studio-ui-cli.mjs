@@ -12,7 +12,7 @@ import { generateSiteChangeSpec, listSiteChangeTemplates } from '../src/site-gen
 import { selectResponsiveViewports, twoStepQaContract, viewportMatrixSummary } from '../src/qa-contract.mjs';
 import { generateRecipeSkeletonFromSpecFile } from '../src/recipe-skeletons.mjs';
 
-const COMMANDS = new Set(['doctor', 'inventory', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
+const COMMANDS = new Set(['doctor', 'inventory', 'apply-plan', 'apply', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -39,6 +39,7 @@ Usage:
 Commands:
   doctor              Read-only adapter readiness and safety diagnostics
   inventory           Read-only sanitized Wix/browser target inventory
+  apply-plan          Compile a routed plan into fail-closed adapter execution packets
   inspect             Read title/url, frames, active element, and visible control labels
   snapshot            Capture screenshot via CDP Page.captureScreenshot
   element-map         Build visible element map for labels/inputs/buttons/selectors
@@ -86,6 +87,7 @@ Global options:
   --url <url>               Optional public/preview URL for SEO and responsive-audit navigation
   --spec <path>             Site spec JSON for site-spec-validate/site-build-plan
   --plan <path>             Plan JSON for route-plan
+  --adapter <name>          Optional adapter filter for apply-plan: api|git|studio|qa
   --operation <id>          Operation id for capability-explain
   --recipe <path>           Studio recipe JSON for studio-recipe-validate/studio-recipe-run
   --type <kind>             Change type for generate-change-spec: faq/about/header/footer/product/portfolio/policy/hero/services/cta
@@ -97,6 +99,7 @@ Global options:
 Examples:
   node bin/wix-studio-ui-cli.mjs doctor --execute --port 9222
   node bin/wix-studio-ui-cli.mjs inventory --execute --port 9222 --target-url-contains wix --out evidence/inventory.json
+  node bin/wix-studio-ui-cli.mjs apply-plan --plan evidence/site-build-plan.json --out evidence/apply-plan.json
   node bin/wix-studio-ui-cli.mjs chrome-pages --execute --port 9222
   node bin/wix-studio-ui-cli.mjs inspect --execute --cdp-url ws://127.0.0.1:9222/devtools/page/ABC
   node bin/wix-studio-ui-cli.mjs element-map --execute --cdp-url ws://... --out evidence/element-map.json
@@ -155,6 +158,18 @@ async function main() {
     if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
     await logEvidence(evidencePath, { phase: 'result', result });
     jsonOut({ command, result, evidencePath }); return;
+  }
+
+  if (command === 'apply-plan' || command === 'apply') {
+    if (!execute && args.dryRun === true) {
+      const plan = dryRunPlan(command, args, gate, evidencePath);
+      await logEvidence(evidencePath, { phase: 'dry-run', plan });
+      jsonOut(plan); return;
+    }
+    const result = await runApplyPlan(args, { execute, evidencePath });
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: execute ? 'result' : 'dry-run', result });
+    jsonOut({ command, dryRun: !execute, result, evidencePath }); return;
   }
 
   if (command === 'chrome-pages') {
@@ -253,6 +268,8 @@ function plannedAction(command, args) {
   switch (command) {
     case 'doctor': return 'Would check Node runtime, capability registry, Wix CLI availability, optional Chrome CDP readiness, and publish-safety defaults without mutating Wix.';
     case 'inventory': return `Would create sanitized read-only inventory for selected Chrome/Wix target and adapter readiness${args.out ? ` to ${args.out}` : ''}.`;
+    case 'apply-plan':
+    case 'apply': return `Would compile routed adapter execution packets from plan ${args.plan || '[missing --plan]'} without mutating Wix; unsafe packets stay blocked until their proof/approval gates pass.`;
     case 'inspect': return 'Would read page title/url, frame inventory, active element, and up to 100 visible controls from attached Chrome tab.';
     case 'snapshot': return `Would capture screenshot${args.out ? ` to ${args.out}` : ''}.`;
     case 'element-map': return `Would map visible controls/inputs/editables and selector hints${args.out ? ` to ${args.out}` : ''}.`;
@@ -384,6 +401,94 @@ async function runInventory(args) {
       publishedWixDomainInspection: 'required after approval-gated test-site publish',
       rollbackPath: 'required for mutation plans'
     }
+  };
+}
+
+async function runApplyPlan(args, { execute = false } = {}) {
+  const routed = await routePlanFile(required(args.plan, '--plan'), args.registry);
+  const adapterFilter = args.adapter ? String(args.adapter).toLowerCase() : null;
+  const actions = adapterFilter
+    ? routed.routedActions.filter((action) => String(action.capability?.adapter || '').toLowerCase() === adapterFilter)
+    : routed.routedActions;
+  const packets = actions.map((action) => compileAdapterPacket(action));
+  const blocked = packets.filter((packet) => packet.status === 'BLOCKED');
+  const readyReadOnly = packets.filter((packet) => packet.status === 'READY_READ_ONLY');
+  const staged = packets.filter((packet) => packet.status === 'STAGED_NEEDS_PROOF');
+  return {
+    status: blocked.length ? 'PASS_WITH_BLOCKERS' : 'PASS',
+    command: 'apply-plan',
+    dryRun: !execute,
+    readOnlyCompiler: true,
+    note: execute
+      ? 'Execution currently compiles packets only; adapter writes remain intentionally fail-closed until each adapter has a proven executor.'
+      : 'Dry run compiled packets only; no Wix/API/Git/Studio writes attempted.',
+    plan: { operationCount: routed.operationCount, adapterFilter, missingCapabilityCount: routed.missingCapabilityCount, highRiskCount: routed.highRiskCount, studioLastMileCount: routed.studioLastMileCount },
+    counts: { packets: packets.length, readyReadOnly: readyReadOnly.length, stagedNeedsProof: staged.length, blocked: blocked.length },
+    packets,
+    blockedReasons: blocked.map((packet) => ({ order: packet.order, operation: packet.operation, reason: packet.reason })),
+    policy: {
+      officialAdaptersFirst: true,
+      apiStructuredObjectsFirst: true,
+      gitForCodeAndRollback: true,
+      studioForLastMileOnly: true,
+      publishRequiresApprovalManifest: true,
+      twoStepQaRequired: true
+    }
+  };
+}
+
+function compileAdapterPacket(action) {
+  const capability = action.capability || null;
+  if (!capability) {
+    return {
+      order: action.order || null,
+      operation: action.inferredOperation,
+      adapter: 'unmapped',
+      status: 'BLOCKED',
+      reason: 'CAPABILITY_MAPPING_REQUIRED',
+      sourceAction: summarizeAction(action)
+    };
+  }
+  const status = action.gate === 'READ_ONLY_OK'
+    ? 'READY_READ_ONLY'
+    : action.gate === 'APPROVAL_AND_QA_REQUIRED'
+      ? 'BLOCKED'
+      : 'STAGED_NEEDS_PROOF';
+  const reason = status === 'BLOCKED'
+    ? 'Approval, rollback, and QA proof required before adapter execution.'
+    : status === 'STAGED_NEEDS_PROOF'
+      ? 'Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.'
+      : 'Read-only packet may run with evidence capture.';
+  return {
+    order: action.order || null,
+    operation: capability.operation,
+    adapter: capability.adapter,
+    risk: capability.risk,
+    status,
+    gate: action.gate,
+    reason,
+    proofRequired: capability.proof || [],
+    rollback: capability.rollback || [],
+    execution: executionStubFor(capability.adapter, capability.operation),
+    sourceAction: summarizeAction(action)
+  };
+}
+
+function executionStubFor(adapter, operation) {
+  const normalized = String(adapter || '').toLowerCase();
+  if (normalized.includes('api') || normalized.includes('sdk') || normalized.includes('mcp')) return { executor: 'api-adapter', mode: 'not_implemented_fail_closed', operation };
+  if (normalized.includes('git') || normalized.includes('cli')) return { executor: 'git-wix-cli-adapter', mode: 'not_implemented_fail_closed', operation };
+  if (normalized.includes('studio')) return { executor: 'studio-recipe-adapter', mode: 'recipe_required_fail_closed', operation };
+  if (normalized.includes('qa')) return { executor: 'qa-adapter', mode: 'evidence_only', operation };
+  return { executor: 'human-handoff', mode: 'manual_review_required', operation };
+}
+
+function summarizeAction(action) {
+  return {
+    phase: action.phase || null,
+    command: action.command || null,
+    title: action.title || action.name || null,
+    descriptionHash: action.description ? createHash('sha256').update(String(action.description)).digest('hex') : null
   };
 }
 

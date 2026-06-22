@@ -19,7 +19,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['doctor', 'inventory', 'chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
+const commands = ['doctor', 'inventory', 'apply-plan', 'apply', 'chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -28,7 +28,7 @@ for (const command of commands) {
   if (['sitemap-check', 'robots-check'].includes(command)) args.push('--base-url', 'https://example.com');
   if (['site-spec-validate', 'site-build-plan'].includes(command)) args.push('--spec', 'examples/booking-site-spec.example.json');
   if (command === 'capability-explain') args.push('--operation', 'page.about.optimize');
-  if (command === 'route-plan') args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
+  if (['route-plan', 'apply-plan', 'apply'].includes(command)) args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
   if (['studio-recipe-validate', 'studio-recipe-run'].includes(command)) args.push('--recipe', 'recipes/faq-section.example.json');
   if (command === 'generate-change-spec') args.push('--type', 'about', '--business-name', 'AdSaver', '--industry', 'performance marketing', '--audience', 'service businesses', '--goal', 'turn website visitors into qualified leads');
   if (command === 'generate-recipe-skeleton') args.push('--spec', 'runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/about.spec.json');
@@ -43,6 +43,15 @@ const doctorJson = JSON.parse(doctor.stdout);
 assert(doctorJson.result.safetyDefaults.publishFailClosed === true, 'doctor reports fail-closed publish safety', doctor.stdout);
 assert(doctorJson.result.adapters.qa.twoStepQa.includes('editor-preview-inspection'), 'doctor reports two-step QA editor gate', doctor.stdout);
 assert(doctorJson.result.adapters.qa.twoStepQa.includes('published-wix-domain-inspection'), 'doctor reports two-step QA published gate', doctor.stdout);
+
+const applyPlanFixture = run(['site-build-plan', '--spec', 'examples/booking-site-spec.example.json', '--out', '/tmp/wix-cli-guardrail-plan.json']);
+assert(applyPlanFixture.status === 0, 'site-build-plan fixture exits 0', applyPlanFixture.stderr || applyPlanFixture.stdout);
+const applyPlan = run(['apply-plan', '--plan', '/tmp/wix-cli-guardrail-plan.json']);
+assert(applyPlan.status === 0, 'apply-plan fixture exits 0', applyPlan.stderr || applyPlan.stdout);
+const applyJson = JSON.parse(applyPlan.stdout);
+assert(applyJson.result.readOnlyCompiler === true, 'apply-plan is read-only compiler', applyPlan.stdout);
+assert(applyJson.result.policy.officialAdaptersFirst === true, 'apply-plan keeps official-adapters-first policy', applyPlan.stdout);
+assert(applyJson.result.counts.packets > 0, 'apply-plan emits packets', applyPlan.stdout);
 
 const capabilities = run(['capabilities']);
 assert(capabilities.status === 0, 'capabilities exits 0', capabilities.stderr || capabilities.stdout);

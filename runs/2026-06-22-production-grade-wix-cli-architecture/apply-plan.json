@@ -1,0 +1,991 @@
+{
+  "status": "PASS_WITH_BLOCKERS",
+  "command": "apply-plan",
+  "dryRun": true,
+  "readOnlyCompiler": true,
+  "note": "Dry run compiled packets only; no Wix/API/Git/Studio writes attempted.",
+  "plan": {
+    "operationCount": 32,
+    "adapterFilter": null,
+    "missingCapabilityCount": 0,
+    "highRiskCount": 3,
+    "studioLastMileCount": 26
+  },
+  "counts": {
+    "packets": 32,
+    "readyReadOnly": 7,
+    "stagedNeedsProof": 23,
+    "blocked": 2
+  },
+  "packets": [
+    {
+      "order": 1,
+      "operation": "site.context.pack",
+      "adapter": "studio_cdp_read_only",
+      "risk": "read_only",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "selected_tab_url",
+        "inspect_json",
+        "element_map",
+        "frame_map",
+        "screenshot"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "site.context.pack"
+      },
+      "sourceAction": {
+        "phase": "preflight",
+        "command": "chrome-pages",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 2,
+      "operation": "site.context.pack",
+      "adapter": "studio_cdp_read_only",
+      "risk": "read_only",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "selected_tab_url",
+        "inspect_json",
+        "element_map",
+        "frame_map",
+        "screenshot"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "site.context.pack"
+      },
+      "sourceAction": {
+        "phase": "preflight",
+        "command": "context-pack",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 3,
+      "operation": "rollback.plan",
+      "adapter": "local_planner",
+      "risk": "read_only_local_artifact",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "rollback_steps",
+        "owner",
+        "restore_point"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "human-handoff",
+        "mode": "manual_review_required",
+        "operation": "rollback.plan"
+      },
+      "sourceAction": {
+        "phase": "structure",
+        "command": "manual/wix-template-selection",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 4,
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "before_screenshot",
+        "after_screenshot",
+        "save_state",
+        "preview_readback"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "manual_delete_page",
+        "git_revert_if_code"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "page.create"
+      },
+      "sourceAction": {
+        "phase": "pages",
+        "command": "plan-page",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 5,
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "before_screenshot",
+        "after_screenshot",
+        "save_state",
+        "preview_readback"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "manual_delete_page",
+        "git_revert_if_code"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "page.create"
+      },
+      "sourceAction": {
+        "phase": "pages",
+        "command": "plan-page",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 6,
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "before_screenshot",
+        "after_screenshot",
+        "save_state",
+        "preview_readback"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "manual_delete_page",
+        "git_revert_if_code"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "page.create"
+      },
+      "sourceAction": {
+        "phase": "pages",
+        "command": "plan-page",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 7,
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "before_screenshot",
+        "after_screenshot",
+        "save_state",
+        "preview_readback"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "manual_delete_page",
+        "git_revert_if_code"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "page.create"
+      },
+      "sourceAction": {
+        "phase": "pages",
+        "command": "plan-page",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 8,
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "before_screenshot",
+        "after_screenshot",
+        "save_state",
+        "preview_readback"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "manual_delete_page",
+        "git_revert_if_code"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "page.create"
+      },
+      "sourceAction": {
+        "phase": "pages",
+        "command": "plan-page",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 9,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 10,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 11,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 12,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 13,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 14,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 15,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 16,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 17,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 18,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 19,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 20,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 21,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 22,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 23,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 24,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 25,
+      "operation": "section.services.create",
+      "adapter": "studio_recipe_or_blocks",
+      "risk": "reversible_ui_candidate",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "content_spec",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "remove_section",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.services.create"
+      },
+      "sourceAction": {
+        "phase": "content",
+        "command": "plan-section",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 26,
+      "operation": "section.product_cards.create",
+      "adapter": "stores_or_cms_then_blocks_or_studio",
+      "risk": "approval_required_if_live_store",
+      "status": "BLOCKED",
+      "gate": "APPROVAL_AND_QA_REQUIRED",
+      "reason": "Approval, rollback, and QA proof required before adapter execution.",
+      "proofRequired": [
+        "catalog_readback",
+        "after_screenshot",
+        "phone_screenshot"
+      ],
+      "rollback": [
+        "restore_catalog_receipt",
+        "wix_site_history"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "section.product_cards.create"
+      },
+      "sourceAction": {
+        "phase": "booking-data",
+        "command": "plan-property-card",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 27,
+      "operation": "qa.preview.inspect",
+      "adapter": "browser_qa_and_studio_cdp_read_only",
+      "risk": "read_only",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "selected_editor_url_title",
+        "before_screenshot",
+        "after_or_preview_screenshot",
+        "save_state",
+        "preview_url",
+        "preview_responsive_audit"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "studio-recipe-adapter",
+        "mode": "recipe_required_fail_closed",
+        "operation": "qa.preview.inspect"
+      },
+      "sourceAction": {
+        "phase": "qa-preview",
+        "command": "qa-preview-inspect",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 28,
+      "operation": "responsive.viewport.capture",
+      "adapter": "browser_qa",
+      "risk": "read_only",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "desktop_1366_screenshot",
+        "desktop_1440_screenshot",
+        "desktop_1920_screenshot",
+        "desktop_2560_screenshot",
+        "tablet_1024x768_screenshot",
+        "tablet_768x1024_screenshot",
+        "phone_430_screenshot",
+        "phone_390_screenshot",
+        "phone_375_screenshot",
+        "phone_360_screenshot",
+        "breakpoint_320_480_767_768_1023_1024_1279_1280_assertions"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "qa-adapter",
+        "mode": "evidence_only",
+        "operation": "responsive.viewport.capture"
+      },
+      "sourceAction": {
+        "phase": "responsive",
+        "command": "responsive-audit --viewports expanded",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 29,
+      "operation": "site.test.publish",
+      "adapter": "wix_cli_for_sites",
+      "risk": "publish_impacting_approval_required",
+      "status": "BLOCKED",
+      "gate": "APPROVAL_AND_QA_REQUIRED",
+      "reason": "Approval, rollback, and QA proof required before adapter execution.",
+      "proofRequired": [
+        "approval_manifest",
+        "explicit_non_client_test_site_target",
+        "git_sync_status",
+        "preview_pass",
+        "rollback_plan",
+        "publish_receipt"
+      ],
+      "rollback": [
+        "wix_site_history",
+        "git_revert",
+        "republish_previous_version"
+      ],
+      "execution": {
+        "executor": "git-wix-cli-adapter",
+        "mode": "not_implemented_fail_closed",
+        "operation": "site.test.publish"
+      },
+      "sourceAction": {
+        "phase": "publish-gate",
+        "command": "publish-test-site",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 30,
+      "operation": "qa.published.inspect",
+      "adapter": "browser_qa",
+      "risk": "read_only_after_publish",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "published_wix_domain_url",
+        "browser_rendered_screenshots",
+        "expanded_responsive_audit",
+        "public_seo_content_sanity",
+        "navigation_cta_sanity",
+        "console_runtime_check"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "qa-adapter",
+        "mode": "evidence_only",
+        "operation": "qa.published.inspect"
+      },
+      "sourceAction": {
+        "phase": "qa-published",
+        "command": "qa-published-inspect",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 31,
+      "operation": "seo.public.audit",
+      "adapter": "browser_fetch_qa",
+      "risk": "read_only",
+      "status": "READY_READ_ONLY",
+      "gate": "READ_ONLY_OK",
+      "reason": "Read-only packet may run with evidence capture.",
+      "proofRequired": [
+        "title_meta_canonical_headings_links"
+      ],
+      "rollback": [
+        "none_read_only"
+      ],
+      "execution": {
+        "executor": "qa-adapter",
+        "mode": "evidence_only",
+        "operation": "seo.public.audit"
+      },
+      "sourceAction": {
+        "phase": "seo",
+        "command": "public-seo-proof",
+        "title": null,
+        "descriptionHash": null
+      }
+    },
+    {
+      "order": 32,
+      "operation": "qa.verdict.request",
+      "adapter": "qa_manager_existing_main_session",
+      "risk": "internal_review",
+      "status": "STAGED_NEEDS_PROOF",
+      "gate": "MUTATION_RECEIPT_AND_RESPONSIVE_QA_REQUIRED",
+      "reason": "Adapter executor requires preconditions, evidence, rollback, and post-check proof before writes.",
+      "proofRequired": [
+        "qa_report_path",
+        "verdict"
+      ],
+      "rollback": [
+        "address_findings"
+      ],
+      "execution": {
+        "executor": "qa-adapter",
+        "mode": "evidence_only",
+        "operation": "qa.verdict.request"
+      },
+      "sourceAction": {
+        "phase": "handoff",
+        "command": "verification",
+        "title": null,
+        "descriptionHash": null
+      }
+    }
+  ],
+  "blockedReasons": [
+    {
+      "order": 26,
+      "operation": "section.product_cards.create",
+      "reason": "Approval, rollback, and QA proof required before adapter execution."
+    },
+    {
+      "order": 29,
+      "operation": "site.test.publish",
+      "reason": "Approval, rollback, and QA proof required before adapter execution."
+    }
+  ],
+  "policy": {
+    "officialAdaptersFirst": true,
+    "apiStructuredObjectsFirst": true,
+    "gitForCodeAndRollback": true,
+    "studioForLastMileOnly": true,
+    "publishRequiresApprovalManifest": true,
+    "twoStepQaRequired": true
+  }
+}

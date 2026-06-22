@@ -13,6 +13,8 @@ export const BLOCKED_INTENTS = [
 export const READ_ONLY_COMMANDS = new Set([
   'doctor',
   'inventory',
+  'apply-plan',
+  'apply',
   'inspect',
   'snapshot',
   'element-map',
