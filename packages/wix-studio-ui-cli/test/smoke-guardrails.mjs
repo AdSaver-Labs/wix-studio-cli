@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -49,6 +49,9 @@ const planOut = join(tmpdir(), `wix-cli-plan-${Date.now()}.json`);
 const routedOut = join(tmpdir(), `wix-cli-routed-${Date.now()}.json`);
 const plan = run(['site-build-plan', '--spec', 'examples/booking-site-spec.example.json', '--out', planOut]);
 assert(plan.status === 0, 'site-build-plan fixture exits 0', plan.stderr || plan.stdout);
+const planJson = JSON.parse(plan.stdout);
+assert(planJson.result.status === 'PASS', 'site-build-plan fixture status is PASS', plan.stdout);
+assert(planJson.result.validation.ok === true, 'site-build-plan fixture validation is ok', plan.stdout);
 const routed = run(['route-plan', '--plan', planOut, '--out', routedOut]);
 assert(routed.status === 0, 'route-plan fixture exits 0', routed.stderr || routed.stdout);
 const routedJson = JSON.parse(routed.stdout);
@@ -58,6 +61,13 @@ const routedCommands = routedJson.result.routedActions.map((action) => action.co
 assert(routedCommands.includes('qa-preview-inspect'), 'route-plan includes mandatory editor/preview QA gate', routed.stdout);
 assert(routedCommands.includes('publish-test-site'), 'route-plan includes approval-gated test-site publish gate', routed.stdout);
 assert(routedCommands.includes('qa-published-inspect'), 'route-plan includes mandatory published Wix-domain QA gate', routed.stdout);
+
+const committedRouted = JSON.parse(readFileSync('../../runs/2026-06-22-production-grade-wix-cli-architecture/routed-plan.json', 'utf8'));
+const committedCommands = committedRouted.routedActions.map((action) => action.command);
+assert(committedRouted.missingCapabilityCount === 0, 'committed routed-plan has no missing capabilities', JSON.stringify(committedRouted, null, 2));
+assert(committedCommands.includes('qa-preview-inspect'), 'committed routed-plan includes mandatory editor/preview QA gate', JSON.stringify(committedRouted, null, 2));
+assert(committedCommands.includes('publish-test-site'), 'committed routed-plan includes approval-gated test-site publish gate', JSON.stringify(committedRouted, null, 2));
+assert(committedCommands.includes('qa-published-inspect'), 'committed routed-plan includes mandatory published Wix-domain QA gate', JSON.stringify(committedRouted, null, 2));
 
 const recipeValidate = run(['studio-recipe-validate', '--recipe', 'recipes/faq-section.example.json']);
 assert(recipeValidate.status === 0, 'studio-recipe-validate exits 0', recipeValidate.stderr || recipeValidate.stdout);

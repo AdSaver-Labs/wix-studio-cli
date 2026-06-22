@@ -172,13 +172,14 @@
     }
   },
   "proofGates": [
-    "desktop-screenshot",
-    "mobile-screenshot",
-    "save-state",
     "editor-preview-inspection",
-    "expanded-responsive-audit",
-    "approval-gated-test-site-publish",
     "published-wix-domain-inspection",
+    "responsive-audit-expanded",
+    "phone-primary-proof",
+    "large-desktop-proof",
+    "breakpoint-edge-proof",
+    "save-state",
+    "public-seo-proof",
     "evidence-bundle"
   ],
   "constraints": [

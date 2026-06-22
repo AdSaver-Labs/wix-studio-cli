@@ -1,9 +1,9 @@
 {
   "status": "PASS",
-  "operationCount": 29,
+  "operationCount": 32,
   "missingCapabilityCount": 0,
-  "highRiskCount": 1,
-  "studioLastMileCount": 25,
+  "highRiskCount": 3,
+  "studioLastMileCount": 26,
   "missing": [],
   "routedActions": [
     {
@@ -761,26 +761,30 @@
     },
     {
       "order": 27,
-      "phase": "responsive",
-      "command": "responsive-mode",
+      "phase": "qa-preview",
+      "command": "qa-preview-inspect",
       "risk": "read_only",
-      "detail": "Capture desktop/tablet/mobile visual proof and note breakpoints needing manual polish.",
+      "detail": "Mandatory first QA gate: inspect selected editor context plus preview URL before publish. Preview is necessary but not sufficient for completion.",
       "proof": [
-        "desktop screenshot",
-        "tablet screenshot",
-        "mobile screenshot"
+        "editor-preview-inspection PASS",
+        "editor URL/title",
+        "before/after screenshots",
+        "save-state",
+        "preview URL screenshots"
       ],
-      "inferredOperation": "responsive.viewport.capture",
+      "inferredOperation": "qa.preview.inspect",
       "capability": {
-        "operation": "responsive.viewport.capture",
-        "adapter": "browser_qa",
+        "operation": "qa.preview.inspect",
+        "adapter": "browser_qa_and_studio_cdp_read_only",
         "risk": "read_only",
         "stablePublicSurface": true,
         "proof": [
-          "desktop_screenshot",
-          "tablet_screenshot",
-          "phone_390_screenshot",
-          "phone_360_screenshot"
+          "selected_editor_url_title",
+          "before_screenshot",
+          "after_or_preview_screenshot",
+          "save_state",
+          "preview_url",
+          "preview_responsive_audit"
         ],
         "rollback": [
           "none_read_only"
@@ -790,10 +794,115 @@
     },
     {
       "order": 28,
+      "phase": "responsive",
+      "command": "responsive-audit --viewports expanded",
+      "risk": "read_only",
+      "detail": "Capture expanded professional viewport matrix, including large desktop/27-inch, tablet, phones, and breakpoint edges.",
+      "proof": [
+        "responsive-audit-expanded PASS",
+        "phone-primary-proof",
+        "large-desktop-proof",
+        "breakpoint-edge-proof"
+      ],
+      "inferredOperation": "responsive.viewport.capture",
+      "capability": {
+        "operation": "responsive.viewport.capture",
+        "adapter": "browser_qa",
+        "risk": "read_only",
+        "stablePublicSurface": true,
+        "proof": [
+          "desktop_1366_screenshot",
+          "desktop_1440_screenshot",
+          "desktop_1920_screenshot",
+          "desktop_2560_screenshot",
+          "tablet_1024x768_screenshot",
+          "tablet_768x1024_screenshot",
+          "phone_430_screenshot",
+          "phone_390_screenshot",
+          "phone_375_screenshot",
+          "phone_360_screenshot",
+          "breakpoint_320_480_767_768_1023_1024_1279_1280_assertions"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 29,
+      "phase": "publish-gate",
+      "command": "publish-test-site",
+      "risk": "publish_approval_required",
+      "detail": "Approval-gated publish only to explicit non-client Wix test-site target after Git sync/status, preview PASS, approval manifest, and rollback plan.",
+      "proof": [
+        "approval manifest",
+        "test-site target",
+        "git sync/status",
+        "preview PASS",
+        "rollback plan"
+      ],
+      "inferredOperation": "site.test.publish",
+      "capability": {
+        "operation": "site.test.publish",
+        "adapter": "wix_cli_for_sites",
+        "risk": "publish_impacting_approval_required",
+        "stablePublicSurface": true,
+        "proof": [
+          "approval_manifest",
+          "explicit_non_client_test_site_target",
+          "git_sync_status",
+          "preview_pass",
+          "rollback_plan",
+          "publish_receipt"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "git_revert",
+          "republish_previous_version"
+        ]
+      },
+      "gate": "APPROVAL_AND_QA_REQUIRED"
+    },
+    {
+      "order": 30,
+      "phase": "qa-published",
+      "command": "qa-published-inspect",
+      "risk": "read_only_after_publish",
+      "detail": "Mandatory second QA gate: inspect the real published Wix-domain URL after test-site publish; do not treat preview as published proof.",
+      "proof": [
+        "published Wix-domain URL",
+        "browser-rendered screenshots",
+        "responsive audit",
+        "SEO/content sanity",
+        "console/runtime check where available"
+      ],
+      "inferredOperation": "qa.published.inspect",
+      "capability": {
+        "operation": "qa.published.inspect",
+        "adapter": "browser_qa",
+        "risk": "read_only_after_publish",
+        "stablePublicSurface": true,
+        "proof": [
+          "published_wix_domain_url",
+          "browser_rendered_screenshots",
+          "expanded_responsive_audit",
+          "public_seo_content_sanity",
+          "navigation_cta_sanity",
+          "console_runtime_check"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 31,
       "phase": "seo",
       "command": "public-seo-proof",
-      "risk": "read_only_after_publish_or_preview",
-      "detail": "Run public/readable SEO proof only against preview/public test URL, not client production.",
+      "risk": "read_only_after_publish",
+      "detail": "Run public/readable SEO proof against the published Wix-domain test URL, not only preview and not client production.",
       "proof": [
         "title/meta/canonical/OG/headings proof"
       ],
@@ -813,13 +922,14 @@
       "gate": "READ_ONLY_OK"
     },
     {
-      "order": 29,
+      "order": 32,
       "phase": "handoff",
       "command": "verification",
       "risk": "read_only",
-      "detail": "Emit final proof checklist and remaining unproven gaps before touching real booking website.",
+      "detail": "Emit final evidence bundle checklist and remaining unproven gaps before touching real booking website.",
       "proof": [
         "verification JSON",
+        "evidence bundle manifest",
         "operator summary"
       ],
       "inferredOperation": "qa.verdict.request",
@@ -843,6 +953,6 @@
     "officialAdaptersFirst": true,
     "studioAutomation": "last_mile_recipe_only",
     "mobileProof": "required_for_user_facing_changes",
-    "publish": "approval_manifest_required"
+    "publish": "approval_manifest_required_for_non_client_test_site_only_until_published_wix_domain_proof_passes"
   }
 }
