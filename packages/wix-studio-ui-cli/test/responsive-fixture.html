@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Responsive Audit Fixture</title>
+  <style>
+    :root { font-family: Inter, Arial, sans-serif; color: #172033; background: #f7f4ee; }
+    body { margin: 0; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 18px clamp(16px, 5vw, 72px); background: #101827; color: white; }
+    nav a { color: white; margin-left: 18px; text-decoration: none; min-width: 44px; min-height: 44px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; }
+    main { padding: clamp(24px, 7vw, 88px); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(240px, .9fr); gap: 36px; align-items: center; }
+    h1 { font-size: clamp(2.25rem, 6vw, 5rem); line-height: 1.08; margin: 0 0 18px; letter-spacing: -.05em; overflow: visible; }
+    p { font-size: clamp(1rem, 2.5vw, 1.25rem); line-height: 1.55; max-width: 62ch; }
+    .cta { display: inline-flex; min-width: 160px; min-height: 48px; align-items: center; justify-content: center; border-radius: 999px; background: #f05a28; color: white; font-weight: 800; text-decoration: none; padding: 0 22px; }
+    .card { min-height: 320px; border-radius: 28px; background: linear-gradient(135deg, #243b73, #dfb66f); box-shadow: 0 30px 70px rgba(16,24,39,.25); }
+    @media (max-width: 760px) {
+      header { align-items: flex-start; gap: 12px; flex-direction: column; }
+      nav { display: flex; gap: 10px; flex-wrap: wrap; }
+      nav a { margin: 0; }
+      .hero { grid-template-columns: 1fr; }
+      main { padding: 28px 18px 48px; }
+      h1 { font-size: clamp(2.4rem, 13vw, 3.8rem); }
+      .card { min-height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <header><strong>AdSaver</strong><nav><a href="#work">Work</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></nav></header>
+  <main>
+    <section class="hero">
+      <div>
+        <h1 contenteditable="true">Conversion-first websites built to win on mobile.</h1>
+        <p>Professional Wix Studio sections, copy, responsive polish, SEO checks, and proof gates for every viewport.</p>
+        <a class="cta" href="#contact">Get started</a>
+      </div>
+      <div class="card" aria-label="Design preview card"></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -21,6 +21,7 @@ export const READ_ONLY_COMMANDS = new Set([
   'chrome-pages',
   'read-only-proof',
   'context-pack',
+  'responsive-audit',
   'selector-resolve',
   'selectors-evidence',
   'seo-audit',
@@ -28,7 +29,11 @@ export const READ_ONLY_COMMANDS = new Set([
   'sitemap-check',
   'robots-check',
   'site-spec-validate',
-  'site-build-plan'
+  'site-build-plan',
+  'capabilities',
+  'capability-explain',
+  'route-plan',
+  'studio-recipe-validate'
 ]);
 
 const APPROVAL_SCHEMA_VERSION = 2;

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "recipeId": "responsive-fixture.text-edit.v1",
+  "operation": "content.copy.apply",
+  "title": "Local fixture text edit recipe",
+  "description": "Executable local proof that studio-recipe-run can apply a versioned text edit, capture phone proof, and read save-state without touching Wix.",
+  "target": {
+    "siteId": "local-fixture",
+    "page": "responsive-fixture.html",
+    "surface": "local-browser-fixture"
+  },
+  "risk": "reversible_ui_candidate",
+  "mobileFirst": true,
+  "preconditions": [
+    "Run only against the local responsive fixture file.",
+    "No Wix account, client site, publish, domain, payment, order, or booking data is touched."
+  ],
+  "steps": [
+    { "type": "text-edit", "selector": "h1", "text": "Mobile-first websites proven before they go live.", "proof": ["local DOM commit"] },
+    { "type": "responsive-mode", "mode": "mobile", "proof": ["phone viewport set"] },
+    { "type": "snapshot", "name": "phone-after-local-text-edit", "proof": ["phone screenshot"] },
+    { "type": "save-state-detect", "proof": ["save state scan"] }
+  ],
+  "verification": [
+    "Text edit result reports ok=true",
+    "Phone screenshot artifact exists",
+    "No live Wix mutation occurred"
+  ],
+  "rollback": [
+    "Reload the local fixture file",
+    "Discard DOM-only browser state"
+  ]
+}

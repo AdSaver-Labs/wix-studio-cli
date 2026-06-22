@@ -1,0 +1,848 @@
+{
+  "status": "PASS",
+  "operationCount": 29,
+  "missingCapabilityCount": 0,
+  "highRiskCount": 1,
+  "studioLastMileCount": 25,
+  "missing": [],
+  "routedActions": [
+    {
+      "order": 1,
+      "phase": "preflight",
+      "command": "chrome-pages",
+      "risk": "read_only",
+      "detail": "Attach to the intended Wix Studio test-site editor tab only.",
+      "proof": [
+        "selected Chrome page title/url"
+      ],
+      "inferredOperation": "site.context.pack",
+      "capability": {
+        "operation": "site.context.pack",
+        "adapter": "studio_cdp_read_only",
+        "risk": "read_only",
+        "stablePublicSurface": false,
+        "proof": [
+          "selected_tab_url",
+          "inspect_json",
+          "element_map",
+          "frame_map",
+          "screenshot"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 2,
+      "phase": "preflight",
+      "command": "context-pack",
+      "risk": "read_only",
+      "detail": "Capture inspect, element-map, frame-map, diagnostics, save-state, and screenshot before mutations.",
+      "proof": [
+        "context-pack artifacts"
+      ],
+      "inferredOperation": "site.context.pack",
+      "capability": {
+        "operation": "site.context.pack",
+        "adapter": "studio_cdp_read_only",
+        "risk": "read_only",
+        "stablePublicSurface": false,
+        "proof": [
+          "selected_tab_url",
+          "inspect_json",
+          "element_map",
+          "frame_map",
+          "screenshot"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 3,
+      "phase": "structure",
+      "command": "manual/wix-template-selection",
+      "risk": "operator_step",
+      "detail": "Create or select a Wix Studio test site/template matching the business/booking style. CLI must not create paid/live resources silently.",
+      "proof": [
+        "test site dashboard/editor URL"
+      ],
+      "inferredOperation": "rollback.plan",
+      "capability": {
+        "operation": "rollback.plan",
+        "adapter": "local_planner",
+        "risk": "read_only_local_artifact",
+        "stablePublicSurface": true,
+        "proof": [
+          "rollback_steps",
+          "owner",
+          "restore_point"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 4,
+      "phase": "pages",
+      "command": "plan-page",
+      "risk": "reversible_ui_candidate",
+      "detail": "Create/configure page \"Premium Stays in Bansko and Sofia\" at slug /home; sections: hero, trust, featured-properties, how-it-works, cta",
+      "proof": [
+        "before/after snapshot",
+        "save-state"
+      ],
+      "inferredOperation": "page.create",
+      "capability": {
+        "operation": "page.create",
+        "adapter": "studio_recipe_or_git_router",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "before_screenshot",
+          "after_screenshot",
+          "save_state",
+          "preview_readback"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "manual_delete_page",
+          "git_revert_if_code"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 5,
+      "phase": "pages",
+      "command": "plan-page",
+      "risk": "reversible_ui_candidate",
+      "detail": "Create/configure page \"Available Apartments\" at slug /properties; sections: property-grid, filters, cta",
+      "proof": [
+        "before/after snapshot",
+        "save-state"
+      ],
+      "inferredOperation": "page.create",
+      "capability": {
+        "operation": "page.create",
+        "adapter": "studio_recipe_or_git_router",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "before_screenshot",
+          "after_screenshot",
+          "save_state",
+          "preview_readback"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "manual_delete_page",
+          "git_revert_if_code"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 6,
+      "phase": "pages",
+      "command": "plan-page",
+      "risk": "reversible_ui_candidate",
+      "detail": "Create/configure page \"Property Detail\" at slug /properties/pirin-golf-studio-velvet; sections: property-hero, gallery, amenities, booking-widget, location, faq",
+      "proof": [
+        "before/after snapshot",
+        "save-state"
+      ],
+      "inferredOperation": "page.create",
+      "capability": {
+        "operation": "page.create",
+        "adapter": "studio_recipe_or_git_router",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "before_screenshot",
+          "after_screenshot",
+          "save_state",
+          "preview_readback"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "manual_delete_page",
+          "git_revert_if_code"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 7,
+      "phase": "pages",
+      "command": "plan-page",
+      "risk": "reversible_ui_candidate",
+      "detail": "Create/configure page \"Book Your Stay\" at slug /booking; sections: booking-widget, booking-support, faq",
+      "proof": [
+        "before/after snapshot",
+        "save-state"
+      ],
+      "inferredOperation": "page.create",
+      "capability": {
+        "operation": "page.create",
+        "adapter": "studio_recipe_or_git_router",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "before_screenshot",
+          "after_screenshot",
+          "save_state",
+          "preview_readback"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "manual_delete_page",
+          "git_revert_if_code"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 8,
+      "phase": "pages",
+      "command": "plan-page",
+      "risk": "reversible_ui_candidate",
+      "detail": "Create/configure page \"Contact Top Kvartiri\" at slug /contact; sections: contact-form, direct-contact, map",
+      "proof": [
+        "before/after snapshot",
+        "save-state"
+      ],
+      "inferredOperation": "page.create",
+      "capability": {
+        "operation": "page.create",
+        "adapter": "studio_recipe_or_git_router",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "before_screenshot",
+          "after_screenshot",
+          "save_state",
+          "preview_readback"
+        ],
+        "rollback": [
+          "wix_site_history",
+          "manual_delete_page",
+          "git_revert_if_code"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 9,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section hero: Clear premium booking promise with primary CTA to view apartments and secondary CTA to contact support. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 10,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section trust: Show verified properties, professional hosting, guest support, and transparent booking. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 11,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section featured-properties: Feature the strongest property cards with image, location, amenities, and booking CTA. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 12,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section how-it-works: Explain browse, choose dates, book, and receive check-in support. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 13,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section cta: Repeat direct booking/contact CTA. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 14,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section property-grid: Scannable apartment cards. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 15,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section filters: Location and guest-count filtering when technically available. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 16,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section property-hero: Property title, location, hero image, rating/trust markers, booking CTA. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 17,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section gallery: Large visual gallery for the apartment. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 18,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section amenities: Amenities grouped by comfort, kitchen, parking, internet, and building features. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 19,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section booking-widget: Hospitable or equivalent booking iframe/widget in draft/test mode first. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 20,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section location: Map/location context and nearby reasons to book. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 21,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section faq: Arrival, payment, cancellation, check-in, and support FAQs. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 22,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section booking-support: Clarify booking help and fallback contact route. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 23,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section contact-form: Simple inquiry form with name, email/phone, dates, and message. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 24,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section direct-contact: Phone/email/WhatsApp or approved contact routes. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 25,
+      "phase": "content",
+      "command": "plan-section",
+      "risk": "reversible_ui_candidate",
+      "detail": "Build section map: Location/contact map block. with CTA/layout/media requirements.",
+      "proof": [
+        "element-map selector proof",
+        "desktop screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "section.services.create",
+      "capability": {
+        "operation": "section.services.create",
+        "adapter": "studio_recipe_or_blocks",
+        "risk": "reversible_ui_candidate",
+        "stablePublicSurface": false,
+        "proof": [
+          "content_spec",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "remove_section",
+          "wix_site_history"
+        ]
+      },
+      "gate": "STUDIO_RECIPE_PROOF_REQUIRED"
+    },
+    {
+      "order": 26,
+      "phase": "booking-data",
+      "command": "plan-property-card",
+      "risk": "approval_required_if_live_booking",
+      "detail": "Add property card/detail for Pirin Golf Studio Velvet; booking target must remain test/draft unless Alej approves live integration.",
+      "proof": [
+        "booking link/widget proof",
+        "no live payment mutation"
+      ],
+      "inferredOperation": "section.product_cards.create",
+      "capability": {
+        "operation": "section.product_cards.create",
+        "adapter": "stores_or_cms_then_blocks_or_studio",
+        "risk": "approval_required_if_live_store",
+        "stablePublicSurface": true,
+        "proof": [
+          "catalog_readback",
+          "after_screenshot",
+          "phone_screenshot"
+        ],
+        "rollback": [
+          "restore_catalog_receipt",
+          "wix_site_history"
+        ]
+      },
+      "gate": "APPROVAL_AND_QA_REQUIRED"
+    },
+    {
+      "order": 27,
+      "phase": "responsive",
+      "command": "responsive-mode",
+      "risk": "read_only",
+      "detail": "Capture desktop/tablet/mobile visual proof and note breakpoints needing manual polish.",
+      "proof": [
+        "desktop screenshot",
+        "tablet screenshot",
+        "mobile screenshot"
+      ],
+      "inferredOperation": "responsive.viewport.capture",
+      "capability": {
+        "operation": "responsive.viewport.capture",
+        "adapter": "browser_qa",
+        "risk": "read_only",
+        "stablePublicSurface": true,
+        "proof": [
+          "desktop_screenshot",
+          "tablet_screenshot",
+          "phone_390_screenshot",
+          "phone_360_screenshot"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 28,
+      "phase": "seo",
+      "command": "public-seo-proof",
+      "risk": "read_only_after_publish_or_preview",
+      "detail": "Run public/readable SEO proof only against preview/public test URL, not client production.",
+      "proof": [
+        "title/meta/canonical/OG/headings proof"
+      ],
+      "inferredOperation": "seo.public.audit",
+      "capability": {
+        "operation": "seo.public.audit",
+        "adapter": "browser_fetch_qa",
+        "risk": "read_only",
+        "stablePublicSurface": true,
+        "proof": [
+          "title_meta_canonical_headings_links"
+        ],
+        "rollback": [
+          "none_read_only"
+        ]
+      },
+      "gate": "READ_ONLY_OK"
+    },
+    {
+      "order": 29,
+      "phase": "handoff",
+      "command": "verification",
+      "risk": "read_only",
+      "detail": "Emit final proof checklist and remaining unproven gaps before touching real booking website.",
+      "proof": [
+        "verification JSON",
+        "operator summary"
+      ],
+      "inferredOperation": "qa.verdict.request",
+      "capability": {
+        "operation": "qa.verdict.request",
+        "adapter": "qa_manager_existing_main_session",
+        "risk": "internal_review",
+        "stablePublicSurface": true,
+        "proof": [
+          "qa_report_path",
+          "verdict"
+        ],
+        "rollback": [
+          "address_findings"
+        ]
+      },
+      "gate": "MUTATION_RECEIPT_AND_RESPONSIVE_QA_REQUIRED"
+    }
+  ],
+  "policy": {
+    "officialAdaptersFirst": true,
+    "studioAutomation": "last_mile_recipe_only",
+    "mobileProof": "required_for_user_facing_changes",
+    "publish": "approval_manifest_required"
+  }
+}

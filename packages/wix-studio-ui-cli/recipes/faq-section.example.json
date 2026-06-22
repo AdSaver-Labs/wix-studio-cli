@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "recipeId": "faq-section.safe-example.v1",
+  "operation": "section.faq.create",
+  "title": "FAQ section last-mile recipe example",
+  "description": "Safe example recipe demonstrating selector proof, text edit, viewport proof, snapshot, and save-state verification for a Wix Studio FAQ section.",
+  "target": {
+    "siteId": "test-site-only",
+    "page": "FAQ or target page",
+    "surface": "wix-studio-editor"
+  },
+  "risk": "reversible_ui_candidate",
+  "mobileFirst": true,
+  "preconditions": [
+    "Use a non-client Wix test site first.",
+    "Capture context-pack before mutation.",
+    "Target section/page is selected in Wix Studio.",
+    "Rollback plan exists: remove section or restore Wix site history."
+  ],
+  "steps": [
+    { "type": "selector-resolve", "label": "FAQ", "proof": ["selector confidence"] },
+    { "type": "text-edit", "label": "FAQ heading", "text": "Questions before you start?", "proof": ["local DOM commit"] },
+    { "type": "responsive-mode", "mode": "mobile", "proof": ["phone viewport set"] },
+    { "type": "snapshot", "name": "phone-after-faq", "proof": ["phone screenshot"] },
+    { "type": "save-state-detect", "proof": ["save state"] }
+  ],
+  "verification": [
+    "save-state-detect returns saved_visible or documented blocked state",
+    "responsive-audit passes on preview/public URL with phone as primary",
+    "FAQ copy is complete, non-placeholder, brand-consistent, and conversion-aligned",
+    "rollback path is captured in the run receipt"
+  ],
+  "rollback": [
+    "Remove the inserted FAQ section/page from Wix Studio",
+    "Restore previous copy from the receipt",
+    "Use Wix site history if section-level rollback is unreliable"
+  ]
+}

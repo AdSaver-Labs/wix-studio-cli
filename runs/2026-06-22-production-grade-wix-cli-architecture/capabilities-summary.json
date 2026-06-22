@@ -1,0 +1,127 @@
+{
+  "status": "PASS",
+  "schemaVersion": 1,
+  "operationCount": 63,
+  "defaultPolicy": {
+    "studioAutomation": "last_mile_recipe_only",
+    "publish": "approval_manifest_required",
+    "domainDnsPaymentsOrdersBookings": "blocked_without_explicit_scoped_approval",
+    "mobileProof": "required_for_user_facing_changes"
+  },
+  "byAdapter": {
+    "mcp_or_rest_sdk": 1,
+    "studio_cdp_read_only": 1,
+    "browser_qa": 5,
+    "wix_cli_for_sites": 1,
+    "human_or_wix_dashboard": 1,
+    "studio_recipe_or_git_router": 1,
+    "content_generator_then_studio_recipe": 1,
+    "cms_or_studio_recipe": 3,
+    "content_generator_then_studio_or_git": 4,
+    "cms_data_then_studio_or_blocks": 1,
+    "stores_api_then_blocks_or_studio": 1,
+    "studio_recipe_or_blocks": 4,
+    "studio_recipe_last_mile": 3,
+    "stores_or_cms_then_blocks_or_studio": 1,
+    "cms_then_blocks_or_studio": 1,
+    "local_content_compiler": 2,
+    "studio_recipe_or_git": 2,
+    "local_seo_compiler": 1,
+    "studio_ui_or_sdk_where_available": 1,
+    "browser_fetch_qa": 1,
+    "studio_read_only_or_git": 1,
+    "local_design_compiler": 1,
+    "git_or_studio_recipe": 2,
+    "blocks_css_or_studio_recipe": 2,
+    "rest_sdk": 9,
+    "git_wix_cli_for_sites": 2,
+    "wix_cli_apps_blocks": 2,
+    "api_or_git": 1,
+    "browser_lighthouse_or_fetch": 1,
+    "media_pipeline_or_guidance": 1,
+    "git_cli": 2,
+    "local_planner": 1,
+    "local_artifact_packager": 1,
+    "qa_manager_existing_main_session": 1
+  },
+  "byRisk": {
+    "read_only": 15,
+    "publish_impacting": 1,
+    "domain_dns_high_risk": 1,
+    "reversible_ui_candidate": 20,
+    "regulated_content_review_required": 5,
+    "approval_required_if_live_store": 3,
+    "read_only_local_artifact": 5,
+    "seo_approval_required": 1,
+    "draft_or_data_mutation": 1,
+    "draft_mutation": 3,
+    "booking_approval_required": 1,
+    "code_mutation": 3,
+    "code_mutation_or_app_install": 1,
+    "security_consent_approval_required": 1,
+    "external_write": 1,
+    "internal_review": 1
+  },
+  "sampleOperations": [
+    {
+      "operation": "site.inventory.fetch",
+      "adapter": "mcp_or_rest_sdk",
+      "risk": "read_only"
+    },
+    {
+      "operation": "site.context.pack",
+      "adapter": "studio_cdp_read_only",
+      "risk": "read_only"
+    },
+    {
+      "operation": "site.preview.verify",
+      "adapter": "browser_qa",
+      "risk": "read_only"
+    },
+    {
+      "operation": "site.publish",
+      "adapter": "wix_cli_for_sites",
+      "risk": "publish_impacting"
+    },
+    {
+      "operation": "site.domain.connect",
+      "adapter": "human_or_wix_dashboard",
+      "risk": "domain_dns_high_risk"
+    },
+    {
+      "operation": "page.create",
+      "adapter": "studio_recipe_or_git_router",
+      "risk": "reversible_ui_candidate"
+    },
+    {
+      "operation": "page.about.optimize",
+      "adapter": "content_generator_then_studio_recipe",
+      "risk": "reversible_ui_candidate"
+    },
+    {
+      "operation": "page.faq.create",
+      "adapter": "cms_or_studio_recipe",
+      "risk": "reversible_ui_candidate"
+    },
+    {
+      "operation": "page.policy.create",
+      "adapter": "content_generator_then_studio_or_git",
+      "risk": "regulated_content_review_required"
+    },
+    {
+      "operation": "page.privacy_policy.create",
+      "adapter": "content_generator_then_studio_or_git",
+      "risk": "regulated_content_review_required"
+    },
+    {
+      "operation": "page.terms.create",
+      "adapter": "content_generator_then_studio_or_git",
+      "risk": "regulated_content_review_required"
+    },
+    {
+      "operation": "page.refund_policy.create",
+      "adapter": "content_generator_then_studio_or_git",
+      "risk": "regulated_content_review_required"
+    }
+  ]
+}

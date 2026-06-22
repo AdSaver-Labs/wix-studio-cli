@@ -5,8 +5,10 @@ import { CdpClient, discoverPagesFromPort } from '../src/cdp-client.mjs';
 import { assertAllowed } from '../src/risk-policy.mjs';
 import { defaultEvidencePath, logEvidence, writeArtifact } from '../src/evidence.mjs';
 import { readSiteSpec, validateSiteSpec, buildImplementationPlan } from '../src/site-spec.mjs';
+import { readCapabilityRegistry, summarizeRegistry, explainOperation, routePlanFile } from '../src/capability-registry.mjs';
+import { readStudioRecipe, validateStudioRecipe, dryRunStudioRecipe, runStudioRecipe } from '../src/studio-recipes.mjs';
 
-const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan']);
+const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -40,6 +42,7 @@ Commands:
   click-by-label      Click a UI control by visible/ARIA/data label (requires --execute)
   text-edit           Edit input/textarea/contenteditable by --selector or --label (requires --execute)
   responsive-mode     Set CDP viewport to desktop/tablet/mobile for preview evidence
+  responsive-audit    Capture desktop/tablet/phone proof and enforce phone-primary layout checks
   save-state-detect   Detect visible saved/saving/unsaved/error state text
   diagnostics         Read-only Wix editor failure/hazard scan with remediation guidance
   verification        Emit verification checklist/evidence bundle guidance
@@ -52,6 +55,11 @@ Commands:
   robots-check        Read-only fetch of /robots.txt
   site-spec-validate  Validate a Wix Studio booking/business site spec before implementation
   site-build-plan     Convert a site spec into a phased, proof-gated implementation plan
+  capabilities        Summarize the professional Wix capability registry
+  capability-explain  Explain one operation route: --operation page.about.optimize
+  route-plan          Route a site-build-plan JSON through safest adapters/proof gates
+  studio-recipe-validate Validate a versioned Studio last-mile recipe JSON
+  studio-recipe-run   Dry-run or execute a versioned Studio last-mile recipe JSON
 
 Global options:
   --dry-run                Force dry run (default)
@@ -63,7 +71,11 @@ Global options:
   --approval-manifest <p>  Required for publish/delete/domain/payment/SEO-like intents; raw tokens are rejected
   --mutation-ok            Required for reversible live UI mutations when no approval manifest is used
   --target-url-contains <s> Select a discovered Chrome page by URL/title substring for read-only-proof
+  --url <url>               Optional public/preview URL for SEO and responsive-audit navigation
   --spec <path>             Site spec JSON for site-spec-validate/site-build-plan
+  --plan <path>             Plan JSON for route-plan
+  --operation <id>          Operation id for capability-explain
+  --recipe <path>           Studio recipe JSON for studio-recipe-validate/studio-recipe-run
 
 Examples:
   node bin/wix-studio-ui-cli.mjs chrome-pages --execute --port 9222
@@ -71,8 +83,14 @@ Examples:
   node bin/wix-studio-ui-cli.mjs element-map --execute --cdp-url ws://... --out evidence/element-map.json
   node bin/wix-studio-ui-cli.mjs diagnostics --execute --cdp-url ws://...
   node bin/wix-studio-ui-cli.mjs read-only-proof --execute --port 9222 --target-url-contains wix --out evidence/live-readonly
+  node bin/wix-studio-ui-cli.mjs responsive-audit --execute --cdp-url ws://... --url https://example.com --out evidence/responsive
   node bin/wix-studio-ui-cli.mjs site-spec-validate --spec examples/booking-site-spec.example.json
   node bin/wix-studio-ui-cli.mjs site-build-plan --spec examples/booking-site-spec.example.json --out evidence/site-build-plan.json
+  node bin/wix-studio-ui-cli.mjs capabilities
+  node bin/wix-studio-ui-cli.mjs capability-explain --operation page.about.optimize
+  node bin/wix-studio-ui-cli.mjs route-plan --plan evidence/site-build-plan.json --out evidence/routed-plan.json
+  node bin/wix-studio-ui-cli.mjs studio-recipe-validate --recipe recipes/faq-section.example.json
+  node bin/wix-studio-ui-cli.mjs studio-recipe-run --recipe recipes/faq-section.example.json --dry-run
 `;
 }
 
@@ -113,6 +131,28 @@ async function main() {
     const result = await runSiteSpecCommand(command, args);
     await logEvidence(evidencePath, { phase: 'result', result });
     jsonOut({ command, result, evidencePath }); return;
+  }
+
+  if (['capabilities', 'capability-explain', 'route-plan'].includes(command) && args.dryRun !== true) {
+    const result = await runCapabilityCommand(command, args);
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, result, evidencePath }); return;
+  }
+
+  if (command === 'studio-recipe-validate') {
+    const recipe = await readStudioRecipe(required(args.recipe, '--recipe'));
+    const result = { recipeId: recipe.recipeId, operation: recipe.operation, fingerprint: recipe.fingerprint, validation: validateStudioRecipe(recipe) };
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, result, evidencePath }); return;
+  }
+
+  if (command === 'studio-recipe-run' && !execute) {
+    const recipe = await readStudioRecipe(required(args.recipe, '--recipe'));
+    const result = dryRunStudioRecipe(recipe);
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: 'dry-run', result });
+    jsonOut({ command, dryRun: true, result, evidencePath }); return;
   }
 
   if (!execute) {
@@ -166,6 +206,7 @@ function plannedAction(command, args) {
     case 'click-by-label': return `Would click visible control matching label: ${args.label || '[missing --label]'}.`;
     case 'text-edit': return `Would edit ${args.selector || args.label || '[missing --selector/--label]'} with ${String(args.text || '').length} chars, then report local DOM commit status.`;
     case 'responsive-mode': return `Would set viewport for mode=${args.mode || 'desktop'} and collect responsive preview evidence guidance.`;
+    case 'responsive-audit': return `Would capture desktop/tablet/phone screenshots and fail if phone has overflow, unreadable text, weak tap targets, hidden CTA/header, or clipped content: ${args.url || args.cdpUrl ? 'target provided' : '[missing --url or --cdp-url]'}.`;
     case 'save-state-detect': return 'Would scan visible text for Saved/Saving/Unsaved/Error saving/Draft/Publish/Preview state.';
     case 'diagnostics': return 'Would scan Wix editor symptoms: RTE local-only commits, iframe boundaries, inert CMS panels, stale tab/edit locks, save/publish hazards.';
     case 'verification': return 'Would emit verification checklist for before/after screenshots, save-state, responsive preview, hazard review, and evidence log.';
@@ -177,8 +218,23 @@ function plannedAction(command, args) {
     case 'robots-check': return `Would fetch robots.txt for base URL: ${args.baseUrl || args.url || '[missing --base-url/--url]'}.`;
     case 'site-spec-validate': return `Would validate local site spec: ${args.spec || '[missing --spec]'}.`;
     case 'site-build-plan': return `Would generate proof-gated Wix Studio implementation plan from local site spec: ${args.spec || '[missing --spec]'}.`;
+    case 'capabilities': return 'Would summarize professional Wix capability registry: operations, adapters, risks, proofs, rollback classes.';
+    case 'capability-explain': return `Would explain operation routing/proof requirements for: ${args.operation || '[missing --operation]'}.`;
+    case 'route-plan': return `Would route site-build-plan JSON through capability registry: ${args.plan || '[missing --plan]'}.`;
+    case 'studio-recipe-validate': return `Would validate Studio recipe JSON: ${args.recipe || '[missing --recipe]'}.`;
+    case 'studio-recipe-run': return `Would dry-run Studio recipe JSON with preconditions, step hashes, verification, rollback, and phone-primary proof requirements: ${args.recipe || '[missing --recipe]'}.`;
     default: return 'Would perform read-only local planning.';
   }
+}
+
+async function runCapabilityCommand(command, args) {
+  const registry = await readCapabilityRegistry(args.registry);
+  let result;
+  if (command === 'capabilities') result = summarizeRegistry(registry);
+  else if (command === 'capability-explain') result = explainOperation(registry, required(args.operation, '--operation'));
+  else result = await routePlanFile(required(args.plan, '--plan'), args.registry);
+  if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+  return result;
 }
 
 async function runSiteSpecCommand(command, args) {
@@ -236,6 +292,10 @@ async function runReadOnlyProof(args, evidencePath) {
 
 async function runCommand(command, args) {
   return withCdp(args, async (client) => {
+    if (command === 'studio-recipe-run') {
+      const recipe = await readStudioRecipe(required(args.recipe, '--recipe'));
+      return runStudioRecipe(client, recipe, args);
+    }
     if (command === 'inspect') return valueOf(await client.evaluate(inspectScript()));
     if (command === 'element-map') {
       const map = valueOf(await client.evaluate(elementMapScript()));
@@ -263,9 +323,119 @@ async function runCommand(command, args) {
       await client.send('Emulation.setDeviceMetricsOverride', { ...viewport, deviceScaleFactor: 1, mobile: viewport.mobile });
       return { ok: true, mode: args.mode || 'desktop', viewport, nextEvidence: ['snapshot', 'save-state-detect', 'verification'] };
     }
+    if (command === 'responsive-audit') return runResponsiveAudit(client, args);
     if (command === 'verification') return verificationChecklist(args);
     throw new Error(`Unsupported command execution: ${command}`);
   });
+}
+
+async function runResponsiveAudit(client, args) {
+  const outDir = args.out || `evidence/responsive-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  await client.send('Page.enable');
+  await client.send('Runtime.enable');
+  if (args.url) {
+    await client.send('Page.navigate', { url: args.url });
+    await sleep(Number(args.waitMs || 3000));
+  }
+  const viewports = responsiveViewports(args);
+  const captures = [];
+  for (const viewport of viewports) {
+    await client.send('Emulation.setDeviceMetricsOverride', { width: viewport.width, height: viewport.height, deviceScaleFactor: viewport.deviceScaleFactor || 1, mobile: viewport.mobile });
+    await sleep(Number(args.settleMs || 900));
+    const assertions = valueOf(await client.evaluate(responsiveAssertionScript(viewport.name)));
+    const shot = await client.send('Page.captureScreenshot', { format: args.format || 'png', captureBeyondViewport: true });
+    const suffix = `${viewport.name}-${viewport.width}x${viewport.height}`;
+    const screenshot = await writeArtifact(`${outDir.replace(/\/$/, '')}/${suffix}.${args.format === 'jpeg' ? 'jpg' : 'png'}`, shot.data, 'base64');
+    captures.push({ viewport, assertions, screenshot });
+  }
+  const phoneCaptures = captures.filter((capture) => capture.viewport.phonePrimary);
+  const blockingIssues = captures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
+  const phoneBlockingIssues = phoneCaptures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
+  const result = {
+    status: phoneBlockingIssues.length ? 'FAIL_PHONE_PRIMARY' : blockingIssues.length ? 'PASS_PHONE_WITH_DESKTOP_TABLET_WARNINGS' : 'PASS',
+    phonePrimary: true,
+    targetUrl: args.url || null,
+    checkedViewports: viewports.map((v) => ({ name: v.name, width: v.width, height: v.height, phonePrimary: !!v.phonePrimary })),
+    blockingIssues,
+    phoneBlockingIssues,
+    captures,
+    professionalDesignGate: {
+      phoneMustPass: true,
+      desktopTabletMustBeReviewed: true,
+      requiredManualReview: ['visual hierarchy', 'brand fit', 'conversion clarity', 'copy quality', 'animation tastefulness']
+    }
+  };
+  await writeArtifact(`${outDir.replace(/\/$/, '')}/responsive-audit.json`, JSON.stringify(result, null, 2));
+  return result;
+}
+
+function responsiveViewports(args) {
+  const requested = String(args.viewports || 'desktop,tablet,phone,phone-small').split(',').map((x) => x.trim()).filter(Boolean);
+  const map = {
+    desktop: { name: 'desktop', width: 1440, height: 900, mobile: false },
+    tablet: { name: 'tablet', width: 768, height: 1024, mobile: true },
+    phone: { name: 'phone', width: 390, height: 844, mobile: true, phonePrimary: true },
+    'phone-small': { name: 'phone-small', width: 360, height: 800, mobile: true, phonePrimary: true },
+    'phone-large': { name: 'phone-large', width: 430, height: 932, mobile: true, phonePrimary: true }
+  };
+  return requested.map((name) => map[name]).filter(Boolean);
+}
+
+function responsiveAssertionScript(viewportName) {
+  return `(() => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const body = document.body;
+    const doc = document.documentElement;
+    const issues = [];
+    const warnings = [];
+    const scrollWidth = Math.max(body?.scrollWidth || 0, doc?.scrollWidth || 0);
+    if (scrollWidth > vw + 2) issues.push({ code: 'horizontal_overflow', detail: { viewportWidth: vw, scrollWidth } });
+
+    const visible = (el) => {
+      const style = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
+    };
+    const textEls = [...document.querySelectorAll('h1,h2,h3,p,li,a,button,[role="button"]')].filter(visible).slice(0, 250);
+    const tinyText = textEls.filter((el) => Number.parseFloat(window.getComputedStyle(el).fontSize) < 13).slice(0, 20).map((el) => ({ tag: el.tagName.toLowerCase(), text: (el.innerText || el.textContent || '').trim().slice(0, 80), fontSize: window.getComputedStyle(el).fontSize }));
+    if (tinyText.length) issues.push({ code: 'unreadable_small_text', count: tinyText.length, examples: tinyText.slice(0, 5) });
+
+    const interactive = [...document.querySelectorAll('a,button,input,select,textarea,[role="button"],[tabindex]')].filter(visible).slice(0, 200);
+    const smallTapTargets = interactive.filter((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.width < 40 || rect.height < 40;
+    }).slice(0, 20).map((el) => {
+      const rect = el.getBoundingClientRect();
+      return { tag: el.tagName.toLowerCase(), text: (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().slice(0, 80), width: Math.round(rect.width), height: Math.round(rect.height) };
+    });
+    if (smallTapTargets.length) issues.push({ code: 'small_tap_targets', count: smallTapTargets.length, examples: smallTapTargets.slice(0, 5) });
+
+    const ctaPattern = /book|call|contact|get started|start|quote|buy|shop|schedule|learn more|view|reserve|запази|обади|контакт|оферта|виж/i;
+    const visibleCtas = interactive.filter((el) => ctaPattern.test((el.innerText || el.value || el.getAttribute('aria-label') || '').trim()));
+    if (!visibleCtas.length) warnings.push({ code: 'no_visible_cta_detected', detail: 'No obvious visible CTA matched the built-in conversion pattern.' });
+
+    const header = [...document.querySelectorAll('header,nav,[role="navigation"]')].find(visible);
+    if (!header) warnings.push({ code: 'no_visible_header_or_nav_detected' });
+
+    const clipped = textEls.filter((el) => el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 2).slice(0, 20).map((el) => ({ tag: el.tagName.toLowerCase(), text: (el.innerText || el.textContent || '').trim().slice(0, 80) }));
+    if (clipped.length) issues.push({ code: 'clipped_text_or_content', count: clipped.length, examples: clipped.slice(0, 5) });
+
+    return {
+      viewportName: ${JSON.stringify(viewportName)},
+      url: location.href,
+      title: document.title,
+      viewport: { width: vw, height: vh, scrollWidth, scrollHeight: Math.max(body?.scrollHeight || 0, doc?.scrollHeight || 0) },
+      counts: { text: textEls.length, interactive: interactive.length, visibleCtas: visibleCtas.length },
+      issues,
+      warnings,
+      verdict: issues.length ? 'FAIL' : 'PASS'
+    };
+  })()`;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function viewportFor(mode) {
@@ -308,7 +478,7 @@ function verificationChecklist(args) {
     ],
     blockedWithoutApprovalManifest: ['publish/unpublish', 'delete/remove/truncate', 'domain/DNS', 'payment/checkout/order/booking', 'SEO/indexing/canonical/redirect'],
     approvalManifestShape: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       approved: true,
       command: 'text-edit',
       fingerprint: '<from dry-run risk.fingerprint>',

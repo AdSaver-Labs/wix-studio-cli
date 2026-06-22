@@ -18,7 +18,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan'];
+const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -26,10 +26,42 @@ for (const command of commands) {
   if (['seo-audit', 'public-seo-proof'].includes(command)) args.push('--url', 'https://example.com');
   if (['sitemap-check', 'robots-check'].includes(command)) args.push('--base-url', 'https://example.com');
   if (['site-spec-validate', 'site-build-plan'].includes(command)) args.push('--spec', 'examples/booking-site-spec.example.json');
+  if (command === 'capability-explain') args.push('--operation', 'page.about.optimize');
+  if (command === 'route-plan') args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
+  if (['studio-recipe-validate', 'studio-recipe-run'].includes(command)) args.push('--recipe', 'recipes/faq-section.example.json');
   const res = run(args);
   assert(res.status === 0, `${command} dry-run exits 0`, res.stderr || res.stdout);
-  assert(res.stdout.includes('"dryRun": true') || command === 'chrome-pages', `${command} emits dry-run JSON`, res.stdout);
+  assert(res.stdout.includes('"dryRun": true') || ['chrome-pages', 'studio-recipe-validate'].includes(command), `${command} emits dry-run JSON`, res.stdout);
 }
+
+const capabilities = run(['capabilities']);
+assert(capabilities.status === 0, 'capabilities exits 0', capabilities.stderr || capabilities.stdout);
+const capabilitiesJson = JSON.parse(capabilities.stdout);
+assert(capabilitiesJson.result.operationCount >= 50, 'capability registry contains broad professional operation map', capabilities.stdout);
+
+const explain = run(['capability-explain', '--operation', 'section.header.rework']);
+assert(explain.status === 0, 'capability-explain exits 0', explain.stderr || explain.stdout);
+assert(JSON.parse(explain.stdout).result.operation.adapter.includes('studio'), 'header rework routes to studio last-mile recipe', explain.stdout);
+
+const planOut = join(tmpdir(), `wix-cli-plan-${Date.now()}.json`);
+const routedOut = join(tmpdir(), `wix-cli-routed-${Date.now()}.json`);
+const plan = run(['site-build-plan', '--spec', 'examples/booking-site-spec.example.json', '--out', planOut]);
+assert(plan.status === 0, 'site-build-plan fixture exits 0', plan.stderr || plan.stdout);
+const routed = run(['route-plan', '--plan', planOut, '--out', routedOut]);
+assert(routed.status === 0, 'route-plan fixture exits 0', routed.stderr || routed.stdout);
+const routedJson = JSON.parse(routed.stdout);
+assert(routedJson.result.operationCount > 0, 'route-plan emits routed actions', routed.stdout);
+assert(routedJson.result.missingCapabilityCount === 0, 'route-plan maps every fixture action to a capability', routed.stdout);
+
+const recipeValidate = run(['studio-recipe-validate', '--recipe', 'recipes/faq-section.example.json']);
+assert(recipeValidate.status === 0, 'studio-recipe-validate exits 0', recipeValidate.stderr || recipeValidate.stdout);
+assert(JSON.parse(recipeValidate.stdout).result.validation.ok === true, 'studio recipe fixture is valid', recipeValidate.stdout);
+
+const recipeDryRun = run(['studio-recipe-run', '--recipe', 'recipes/faq-section.example.json', '--dry-run']);
+assert(recipeDryRun.status === 0, 'studio-recipe-run dry-run exits 0', recipeDryRun.stderr || recipeDryRun.stdout);
+const recipeDryRunJson = JSON.parse(recipeDryRun.stdout);
+assert(recipeDryRunJson.result.validation.ok === true, 'studio recipe dry-run includes validation', recipeDryRun.stdout);
+assert(recipeDryRunJson.result.steps.some((step) => step.mutates === true), 'studio recipe dry-run identifies mutating steps', recipeDryRun.stdout);
 
 const noApproval = run(['click-by-label', '--label', 'Publish', '--execute', '--cdp-url', 'ws://127.0.0.1:9/devtools/page/fake']);
 assert(noApproval.status === 3, 'publish-like execute without approval is blocked', noApproval.stderr || noApproval.stdout);
