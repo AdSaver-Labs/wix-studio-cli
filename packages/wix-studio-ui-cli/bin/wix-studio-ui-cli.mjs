@@ -426,12 +426,28 @@ async function runQaPreviewInspect(client, args) {
   const inspect = valueOf(await client.evaluate(inspectScript()));
   const saveState = valueOf(await client.evaluate(saveStateDetectScript()));
   const diagnostics = enrichDiagnostics(valueOf(await client.evaluate(diagnosticsScript())));
-  const responsive = await runResponsiveAudit(client, { ...args, out: `${outDir.replace(/\/$/, '')}/responsive-preview`, viewports: args.viewports || 'expanded' });
+  const previewFrame = selectPreviewFrame(diagnostics?.frames || []);
+  const previewUrl = args.url || previewFrame?.src || null;
+  if (!previewUrl) {
+    const err = new Error('QA_PREVIEW_INSPECT_REQUIRES_PREVIEW_URL_OR_FRAME: provide --url or attach to a Wix editor page with a visible preview-frame iframe. Refusing to audit editor chrome as site preview.');
+    err.code = 'QA_PREVIEW_TARGET_MISSING';
+    throw err;
+  }
+  const previewTarget = previewFrame && !args.url
+    ? await openTemporaryCdpTarget(client.cdpUrl, previewUrl)
+    : { client, close: async () => {} };
+  let responsive;
+  try {
+    responsive = await runResponsiveAudit(previewTarget.client, { ...args, url: previewUrl, out: `${outDir.replace(/\/$/, '')}/responsive-preview`, viewports: args.viewports || 'expanded' });
+  } finally {
+    await previewTarget.close();
+  }
   const result = {
     gate: 'editor-preview-inspection',
     status: responsive.status === 'PASS' ? 'PASS' : 'FAIL',
     twoStepQa: twoStepQaContract(),
     editorContext: { title: inspect?.title || null, url: inspect?.url || null, likelyWixStudio: !!inspect?.isLikelyWixStudio },
+    previewTarget: { url: previewUrl, source: args.url ? 'explicit-url' : 'wix-editor-preview-frame', frameName: previewFrame?.name || null, frameTitle: previewFrame?.title || null },
     saveState: saveState?.state || 'unknown',
     diagnostics: { wixLikely: !!diagnostics?.wixLikely, hazards: diagnostics?.hazards || [], symptoms: diagnostics?.symptoms || [] },
     responsive,
@@ -440,6 +456,40 @@ async function runQaPreviewInspect(client, args) {
   };
   await writeArtifact(`${outDir.replace(/\/$/, '')}/qa-preview-inspection.json`, JSON.stringify(result, null, 2));
   return result;
+}
+
+function selectPreviewFrame(frames = []) {
+  return frames.find((frame) => frame?.visible && frame?.name === 'preview-frame' && frame?.src)
+    || frames.find((frame) => frame?.visible && /renderer\/render\/document/i.test(frame?.src || ''))
+    || null;
+}
+
+async function openTemporaryCdpTarget(sourceCdpUrl, url) {
+  const endpoint = cdpHttpEndpoint(sourceCdpUrl);
+  const createUrl = `${endpoint}/json/new?${encodeURIComponent(url)}`;
+  const res = await fetch(createUrl, { method: 'PUT' });
+  if (!res.ok) throw new Error(`TEMP_PREVIEW_TARGET_CREATE_FAILED: HTTP ${res.status}`);
+  const target = await res.json();
+  const tempClient = new CdpClient({ cdpUrl: target.webSocketDebuggerUrl, timeoutMs: 15000 });
+  await tempClient.connect();
+  return {
+    client: tempClient,
+    async close() {
+      try { await tempClient.close(); } catch {}
+      if (target?.id) {
+        try { await fetch(`${endpoint}/json/close/${target.id}`); } catch {}
+      }
+    }
+  };
+}
+
+function cdpHttpEndpoint(cdpUrl) {
+  const parsed = new URL(cdpUrl);
+  parsed.protocol = parsed.protocol === 'wss:' ? 'https:' : 'http:';
+  parsed.pathname = '';
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString().replace(/\/$/, '');
 }
 
 async function runQaPublishedInspect(client, args) {

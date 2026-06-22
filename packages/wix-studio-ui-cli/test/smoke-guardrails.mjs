@@ -73,6 +73,11 @@ assert(committedCommands.includes('qa-preview-inspect'), 'committed routed-plan 
 assert(committedCommands.includes('publish-test-site'), 'committed routed-plan includes approval-gated test-site publish gate', JSON.stringify(committedRouted, null, 2));
 assert(committedCommands.includes('qa-published-inspect'), 'committed routed-plan includes mandatory published Wix-domain QA gate', JSON.stringify(committedRouted, null, 2));
 
+const cliSource = readFileSync(bin, 'utf8');
+assert(cliSource.includes('selectPreviewFrame'), 'qa-preview-inspect routes through preview-frame selector instead of editor chrome', 'selectPreviewFrame missing');
+assert(cliSource.includes('QA_PREVIEW_INSPECT_REQUIRES_PREVIEW_URL_OR_FRAME'), 'qa-preview-inspect fails closed when no preview URL/frame exists', 'missing preview target fail-closed error');
+assert(cliSource.includes('source: args.url ? \'explicit-url\' : \'wix-editor-preview-frame\''), 'qa-preview-inspect records whether proof came from explicit URL or Wix preview frame', 'preview source evidence missing');
+
 const recipeValidate = run(['studio-recipe-validate', '--recipe', 'recipes/faq-section.example.json']);
 assert(recipeValidate.status === 0, 'studio-recipe-validate exits 0', recipeValidate.stderr || recipeValidate.stdout);
 assert(JSON.parse(recipeValidate.stdout).result.validation.ok === true, 'studio recipe fixture is valid', recipeValidate.stdout);
