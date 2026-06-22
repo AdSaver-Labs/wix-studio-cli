@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const bin = new URL('../bin/wix-studio-ui-cli.mjs', import.meta.url).pathname;
+const repoRoot = resolve(dirname(bin), '../../..');
 const baseEnv = { ...process.env, NO_COLOR: '1' };
 
 function run(args) {
@@ -62,7 +63,10 @@ assert(routedCommands.includes('qa-preview-inspect'), 'route-plan includes manda
 assert(routedCommands.includes('publish-test-site'), 'route-plan includes approval-gated test-site publish gate', routed.stdout);
 assert(routedCommands.includes('qa-published-inspect'), 'route-plan includes mandatory published Wix-domain QA gate', routed.stdout);
 
-const committedRouted = JSON.parse(readFileSync('../../runs/2026-06-22-production-grade-wix-cli-architecture/routed-plan.json', 'utf8'));
+const committedPlan = JSON.parse(readFileSync(join(repoRoot, 'runs/2026-06-22-production-grade-wix-cli-architecture/site-build-plan.json'), 'utf8'));
+assert(committedPlan.status === 'PASS', 'committed site-build-plan status is PASS', JSON.stringify(committedPlan, null, 2));
+assert(committedPlan.validation?.ok === true, 'committed site-build-plan validation is ok', JSON.stringify(committedPlan.validation, null, 2));
+const committedRouted = JSON.parse(readFileSync(join(repoRoot, 'runs/2026-06-22-production-grade-wix-cli-architecture/routed-plan.json'), 'utf8'));
 const committedCommands = committedRouted.routedActions.map((action) => action.command);
 assert(committedRouted.missingCapabilityCount === 0, 'committed routed-plan has no missing capabilities', JSON.stringify(committedRouted, null, 2));
 assert(committedCommands.includes('qa-preview-inspect'), 'committed routed-plan includes mandatory editor/preview QA gate', JSON.stringify(committedRouted, null, 2));
