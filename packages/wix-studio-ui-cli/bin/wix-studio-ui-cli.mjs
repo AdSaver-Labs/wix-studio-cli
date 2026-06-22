@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { inspectScript, elementMapScript, frameMapScript, clickByLabelScript, textEditScript, saveStateDetectScript, diagnosticsScript, selectorResolveScript } from '../src/dom-recipes.mjs';
 import { CdpClient, discoverPagesFromPort } from '../src/cdp-client.mjs';
 import { assertAllowed } from '../src/risk-policy.mjs';
@@ -11,7 +12,7 @@ import { generateSiteChangeSpec, listSiteChangeTemplates } from '../src/site-gen
 import { selectResponsiveViewports, twoStepQaContract, viewportMatrixSummary } from '../src/qa-contract.mjs';
 import { generateRecipeSkeletonFromSpecFile } from '../src/recipe-skeletons.mjs';
 
-const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
+const COMMANDS = new Set(['doctor', 'inventory', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -36,6 +37,8 @@ Usage:
   wix-studio-ui <command> [options]
 
 Commands:
+  doctor              Read-only adapter readiness and safety diagnostics
+  inventory           Read-only sanitized Wix/browser target inventory
   inspect             Read title/url, frames, active element, and visible control labels
   snapshot            Capture screenshot via CDP Page.captureScreenshot
   element-map         Build visible element map for labels/inputs/buttons/selectors
@@ -92,6 +95,8 @@ Global options:
   --goal <text>             Primary conversion/business goal for generated change specs
 
 Examples:
+  node bin/wix-studio-ui-cli.mjs doctor --execute --port 9222
+  node bin/wix-studio-ui-cli.mjs inventory --execute --port 9222 --target-url-contains wix --out evidence/inventory.json
   node bin/wix-studio-ui-cli.mjs chrome-pages --execute --port 9222
   node bin/wix-studio-ui-cli.mjs inspect --execute --cdp-url ws://127.0.0.1:9222/devtools/page/ABC
   node bin/wix-studio-ui-cli.mjs element-map --execute --cdp-url ws://... --out evidence/element-map.json
@@ -132,6 +137,25 @@ async function main() {
   const evidencePath = args.evidence || defaultEvidencePath(command);
   const gate = await assertAllowed({ command, options: args, execute });
   await logEvidence(evidencePath, { phase: 'start', command, execute, gate, args: sanitizeArgs(args) });
+
+  if (command === 'doctor') {
+    const result = await runDoctor(args, { execute });
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: execute ? 'result' : 'dry-run', result });
+    jsonOut({ command, dryRun: !execute, result, evidencePath }); return;
+  }
+
+  if (command === 'inventory') {
+    if (!execute) {
+      const plan = dryRunPlan(command, args, gate, evidencePath);
+      await logEvidence(evidencePath, { phase: 'dry-run', plan });
+      jsonOut(plan); return;
+    }
+    const result = await runInventory(args);
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, result, evidencePath }); return;
+  }
 
   if (command === 'chrome-pages') {
     if (!execute) {
@@ -227,6 +251,8 @@ function dryRunPlan(command, args, gate, evidencePath) {
 
 function plannedAction(command, args) {
   switch (command) {
+    case 'doctor': return 'Would check Node runtime, capability registry, Wix CLI availability, optional Chrome CDP readiness, and publish-safety defaults without mutating Wix.';
+    case 'inventory': return `Would create sanitized read-only inventory for selected Chrome/Wix target and adapter readiness${args.out ? ` to ${args.out}` : ''}.`;
     case 'inspect': return 'Would read page title/url, frame inventory, active element, and up to 100 visible controls from attached Chrome tab.';
     case 'snapshot': return `Would capture screenshot${args.out ? ` to ${args.out}` : ''}.`;
     case 'element-map': return `Would map visible controls/inputs/editables and selector hints${args.out ? ` to ${args.out}` : ''}.`;
@@ -260,6 +286,142 @@ function plannedAction(command, args) {
     case 'generate-change-spec': return `Would generate structured Wix change spec for type=${args.type || '[missing --type]'} with mobile-first proof contract.`;
     case 'generate-recipe-skeleton': return `Would convert generated change spec into fail-closed Studio recipe skeleton with selector-proof, two-step QA, and rollback requirements: ${args.spec || '[missing --spec]'}.`;
     default: return 'Would perform read-only local planning.';
+  }
+}
+
+async function runDoctor(args, { execute = false } = {}) {
+  const registry = await readCapabilityRegistry(args.registry);
+  const nodeMajor = Number(process.versions.node.split('.')[0]);
+  const wixCli = probeCommand('wix', ['--version']);
+  const wixWhoami = execute && wixCli.available ? probeCommand('wix', ['whoami']) : { available: false, skipped: true, reason: 'Run with --execute to probe Wix CLI identity.' };
+  const chrome = execute ? await probeChromeCdp(Number(args.port || 9222)) : { status: 'not_checked', reason: 'Run with --execute to probe Chrome CDP.' };
+  const registrySummary = summarizeRegistry(registry);
+  const adapters = {
+    api: { status: process.env.WIX_API_KEY || process.env.WIX_CLIENT_ID ? 'configured_hint' : 'not_configured', note: 'Official Wix API/SDK/MCP credentials are preferred for structured objects; secrets are never printed.' },
+    gitWixCli: { status: wixCli.available ? 'available' : 'unavailable', version: wixCli.stdout || null, whoami: redactCliOutput(wixWhoami.stdout || wixWhoami.stderr || wixWhoami.reason || '') },
+    studio: { status: chrome.status === 'available' ? 'available' : chrome.status, cdp: chrome },
+    qa: { status: 'available', viewportMatrix: viewportMatrixSummary(), twoStepQa: twoStepQaContract().gates.map((gate) => gate.id) },
+    publish: { status: 'fail_closed', reason: 'publish-test-site validates the contract but does not click Publish until a publisher adapter is separately proven.' },
+    rollback: { status: 'required_per_plan', note: 'Rollback/restore path is required for approval manifests and evidence bundles.' }
+  };
+  const blockers = [];
+  if (nodeMajor < 22) blockers.push('NODE_22_REQUIRED');
+  if (!registrySummary.operationCount) blockers.push('CAPABILITY_REGISTRY_EMPTY');
+  return {
+    status: blockers.length ? 'FAIL' : 'PASS_WITH_WARNINGS',
+    command: 'doctor',
+    readOnly: true,
+    node: { version: process.version, ok: nodeMajor >= 22 },
+    adapters,
+    capabilityRegistry: { operationCount: registrySummary.operationCount, byAdapter: registrySummary.byAdapter, byRisk: registrySummary.byRisk },
+    safetyDefaults: {
+      dryRunByDefault: true,
+      publishFailClosed: true,
+      rawApprovalTokensRejected: true,
+      twoStepQaRequired: true,
+      previewMustTargetRendererNotEditorChrome: true
+    },
+    blockers,
+    warnings: [
+      ...(wixCli.available ? [] : ['Wix CLI not found on PATH; git-wix-cli adapter is unavailable until installed/logged in.']),
+      ...(chrome.status === 'available' ? [] : ['Chrome CDP not available or not checked; Studio adapter needs a debuggable browser session.'])
+    ]
+  };
+}
+
+async function runInventory(args) {
+  const registry = await readCapabilityRegistry(args.registry);
+  const registrySummary = summarizeRegistry(registry);
+  const pages = args.cdpUrl ? [] : await discoverPagesFromPort(Number(args.port || 9222));
+  const targetNeedle = String(args.targetUrlContains || args.target || 'wix').toLowerCase();
+  const page = args.cdpUrl
+    ? { title: null, url: null, id: null, webSocketDebuggerUrl: args.cdpUrl, selectedBy: 'explicit-cdp-url' }
+    : pages.find((p) => String(`${p.url || ''} ${p.title || ''}`).toLowerCase().includes(targetNeedle)) || pages.find((p) => p.webSocketDebuggerUrl) || null;
+  if (!page?.webSocketDebuggerUrl) throw new Error(`INVENTORY_TARGET_NOT_FOUND: no debuggable Chrome page matched "${targetNeedle}" on port ${args.port || 9222}.`);
+
+  const browserTargets = pages.map((p) => ({ id: p.id || null, title: p.title || null, url: redactUrl(p.url || ''), type: p.type || null, wixLikely: /wix/i.test(`${p.url || ''} ${p.title || ''}`) }));
+  const session = await withCdp({ ...args, cdpUrl: page.webSocketDebuggerUrl }, async (client) => {
+    const inspect = valueOf(await client.evaluate(inspectScript()));
+    const diagnostics = enrichDiagnostics(valueOf(await client.evaluate(diagnosticsScript())));
+    const frames = (diagnostics?.frames || []).map((frame) => ({
+      name: frame.name || null,
+      title: frame.title || null,
+      src: redactUrl(frame.src || ''),
+      visible: !!frame.visible,
+      box: frame.box || null,
+      role: frame.name === 'preview-frame' || /renderer\/render\/document/i.test(frame.src || '') ? 'preview-renderer-candidate' : 'supporting-frame'
+    }));
+    const previewFrame = selectPreviewFrame(diagnostics?.frames || []);
+    return {
+      title: inspect?.title || null,
+      url: redactUrl(inspect?.url || page.url || ''),
+      likelyWixStudio: !!(inspect?.isLikelyWixStudio || diagnostics?.wixLikely),
+      hazards: diagnostics?.hazards || [],
+      symptoms: diagnostics?.symptoms || [],
+      frames,
+      previewTarget: previewFrame ? { source: 'wix-editor-preview-frame', frameName: previewFrame.name || null, frameTitle: previewFrame.title || null, url: redactUrl(previewFrame.src || '') } : null,
+      buttonSample: (inspect?.buttons || []).slice(0, 20).map((button) => ({ text: button.text || '', aria: button.aria || null, disabled: !!button.disabled }))
+    };
+  });
+
+  return {
+    status: session.previewTarget || session.likelyWixStudio ? 'PASS' : 'PASS_WITH_WARNINGS',
+    command: 'inventory',
+    readOnly: true,
+    selectedTarget: { id: page.id || null, title: page.title || null, url: redactUrl(page.url || ''), selectedBy: page.selectedBy || targetNeedle },
+    browserTargets,
+    session,
+    adapterReadiness: {
+      api: process.env.WIX_API_KEY || process.env.WIX_CLIENT_ID ? 'configured_hint' : 'not_configured',
+      gitWixCli: probeCommand('wix', ['--version']).available ? 'available' : 'unavailable',
+      studio: session.likelyWixStudio ? 'available' : 'unknown_target',
+      qa: 'available',
+      publish: 'fail_closed'
+    },
+    capabilityRegistry: { operationCount: registrySummary.operationCount, byAdapter: registrySummary.byAdapter },
+    proofContract: {
+      previewInspection: 'required before publish',
+      publishedWixDomainInspection: 'required after approval-gated test-site publish',
+      rollbackPath: 'required for mutation plans'
+    }
+  };
+}
+
+function probeCommand(command, argv = []) {
+  const res = spawnSync(command, argv, { encoding: 'utf8', timeout: 5000 });
+  return {
+    available: !res.error && (res.status === 0 || res.status === 1),
+    status: res.status,
+    stdout: redactCliOutput((res.stdout || '').trim()).slice(0, 500),
+    stderr: redactCliOutput((res.stderr || '').trim()).slice(0, 500),
+    error: res.error?.code || null
+  };
+}
+
+async function probeChromeCdp(port) {
+  try {
+    const pages = await discoverPagesFromPort(port);
+    return { status: 'available', port, pageCount: pages.length, wixTargets: pages.filter((p) => /wix/i.test(`${p.url || ''} ${p.title || ''}`)).length };
+  } catch (err) {
+    return { status: 'unavailable', port, error: err.message };
+  }
+}
+
+function redactCliOutput(value) {
+  return String(value || '')
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted-email]')
+    .replace(/(token|secret|key|cookie|authorization)\s*[:=]\s*\S+/gi, '$1=[redacted]');
+}
+
+function redactUrl(value) {
+  if (!value) return value;
+  try {
+    const parsed = new URL(value);
+    parsed.search = parsed.search ? '?[redacted-query]' : '';
+    parsed.hash = parsed.hash ? '#[redacted-hash]' : '';
+    return parsed.toString();
+  } catch {
+    return String(value).replace(/([?&](?:editorSessionId|esi|token|auth|authorization|cookie|secret|key)=)[^&#\s]+/gi, '$1[redacted]');
   }
 }
 

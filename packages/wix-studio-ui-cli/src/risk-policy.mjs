@@ -11,6 +11,8 @@ export const BLOCKED_INTENTS = [
 ];
 
 export const READ_ONLY_COMMANDS = new Set([
+  'doctor',
+  'inventory',
   'inspect',
   'snapshot',
   'element-map',

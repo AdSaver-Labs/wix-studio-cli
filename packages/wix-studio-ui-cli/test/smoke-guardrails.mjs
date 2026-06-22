@@ -19,7 +19,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
+const commands = ['doctor', 'inventory', 'chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -34,8 +34,15 @@ for (const command of commands) {
   if (command === 'generate-recipe-skeleton') args.push('--spec', 'runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/about.spec.json');
   const res = run(args);
   assert(res.status === 0, `${command} dry-run exits 0`, res.stderr || res.stdout);
-  assert(res.stdout.includes('"dryRun": true') || ['chrome-pages', 'studio-recipe-validate'].includes(command), `${command} emits dry-run JSON`, res.stdout);
+  assert(res.stdout.includes('"dryRun": true') || ['chrome-pages', 'doctor', 'studio-recipe-validate'].includes(command), `${command} emits dry-run JSON`, res.stdout);
 }
+
+const doctor = run(['doctor', '--dry-run']);
+assert(doctor.status === 0, 'doctor dry-run exits 0', doctor.stderr || doctor.stdout);
+const doctorJson = JSON.parse(doctor.stdout);
+assert(doctorJson.result.safetyDefaults.publishFailClosed === true, 'doctor reports fail-closed publish safety', doctor.stdout);
+assert(doctorJson.result.adapters.qa.twoStepQa.includes('editor-preview-inspection'), 'doctor reports two-step QA editor gate', doctor.stdout);
+assert(doctorJson.result.adapters.qa.twoStepQa.includes('published-wix-domain-inspection'), 'doctor reports two-step QA published gate', doctor.stdout);
 
 const capabilities = run(['capabilities']);
 assert(capabilities.status === 0, 'capabilities exits 0', capabilities.stderr || capabilities.stdout);
