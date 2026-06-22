@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "approved": false,
+  "command": "text-edit",
+  "fingerprint": "25a4add244671f8fed4ce950d6290bfc38258a0bafdb7f15583c8fb4af3d1940",
+  "operator": "[operator-name-required]",
+  "issuedAt": "2026-06-22T16:10:35.066Z",
+  "expiresAt": "2026-06-22T16:40:35.066Z",
+  "target": {
+    "siteId": "[required-for-high-risk]",
+    "pageId": "[required-when-known]",
+    "publicUrl": "[required-when-known]",
+    "cdpTargetUrlHash": "[optional]"
+  },
+  "rollbackPlan": "[write a concrete rollback/restore plan before setting approved=true]",
+  "proofRequired": [
+    "before_snapshot",
+    "dry_run_receipt",
+    "rollback_plan",
+    "after_snapshot",
+    "save_state",
+    "qa_preview_or_published_pass"
+  ],
+  "risk": "approval_required",
+  "approvalRequired": true,
+  "reasons": [
+    "SEO/indexing mutations require explicit approval and before/after proof."
+  ],
+  "safetyNotice": "This is a template, not approval. Set approved=true only after Alej/operator approves this exact fingerprint and target."
+}

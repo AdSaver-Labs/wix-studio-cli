@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { inspectScript, elementMapScript, frameMapScript, clickByLabelScript, textEditScript, saveStateDetectScript, diagnosticsScript, selectorResolveScript } from '../src/dom-recipes.mjs';
 import { CdpClient, discoverPagesFromPort } from '../src/cdp-client.mjs';
 import { assertAllowed } from '../src/risk-policy.mjs';
+import { buildApprovalManifestTemplate, executionContractFor, listAdapterContracts } from '../src/adapter-contracts.mjs';
 import { defaultEvidencePath, logEvidence, writeArtifact } from '../src/evidence.mjs';
 import { readSiteSpec, validateSiteSpec, buildImplementationPlan } from '../src/site-spec.mjs';
 import { readCapabilityRegistry, summarizeRegistry, explainOperation, routePlanFile } from '../src/capability-registry.mjs';
@@ -12,7 +13,7 @@ import { generateSiteChangeSpec, listSiteChangeTemplates } from '../src/site-gen
 import { selectResponsiveViewports, twoStepQaContract, viewportMatrixSummary } from '../src/qa-contract.mjs';
 import { generateRecipeSkeletonFromSpecFile } from '../src/recipe-skeletons.mjs';
 
-const COMMANDS = new Set(['doctor', 'inventory', 'apply-plan', 'apply', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
+const COMMANDS = new Set(['doctor', 'inventory', 'adapter-contracts', 'approval-manifest-template', 'apply-plan', 'apply', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -40,6 +41,8 @@ Commands:
   doctor              Read-only adapter readiness and safety diagnostics
   inventory           Read-only sanitized Wix/browser target inventory
   apply-plan          Compile a routed plan into fail-closed adapter execution packets
+  adapter-contracts   Emit versioned fail-closed write-adapter interface contracts
+  approval-manifest-template Generate a bound approval manifest template for an exact action fingerprint
   inspect             Read title/url, frames, active element, and visible control labels
   snapshot            Capture screenshot via CDP Page.captureScreenshot
   element-map         Build visible element map for labels/inputs/buttons/selectors
@@ -82,6 +85,7 @@ Global options:
   --evidence <path>        JSONL evidence path (default: evidence/<timestamp>-<command>.jsonl)
   --out <path>             Artifact output path for screenshot/element/frame map
   --approval-manifest <p>  Required for publish/delete/domain/payment/SEO-like intents; raw tokens are rejected
+  --approval-command <cmd>  Command to bind when generating approval-manifest-template
   --mutation-ok            Required for reversible live UI mutations when no approval manifest is used
   --target-url-contains <s> Select a discovered Chrome page by URL/title substring for read-only-proof
   --url <url>               Optional public/preview URL for SEO and responsive-audit navigation
@@ -100,6 +104,8 @@ Examples:
   node bin/wix-studio-ui-cli.mjs doctor --execute --port 9222
   node bin/wix-studio-ui-cli.mjs inventory --execute --port 9222 --target-url-contains wix --out evidence/inventory.json
   node bin/wix-studio-ui-cli.mjs apply-plan --plan evidence/site-build-plan.json --out evidence/apply-plan.json
+  node bin/wix-studio-ui-cli.mjs adapter-contracts --out evidence/adapter-contracts.json
+  node bin/wix-studio-ui-cli.mjs approval-manifest-template --approval-command text-edit --label SEO --text "New title" --out evidence/approval-template.json
   node bin/wix-studio-ui-cli.mjs chrome-pages --execute --port 9222
   node bin/wix-studio-ui-cli.mjs inspect --execute --cdp-url ws://127.0.0.1:9222/devtools/page/ABC
   node bin/wix-studio-ui-cli.mjs element-map --execute --cdp-url ws://... --out evidence/element-map.json
@@ -158,6 +164,16 @@ async function main() {
     if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
     await logEvidence(evidencePath, { phase: 'result', result });
     jsonOut({ command, result, evidencePath }); return;
+  }
+
+
+  if (command === 'adapter-contracts' || command === 'approval-manifest-template') {
+    const result = command === 'adapter-contracts'
+      ? listAdapterContracts()
+      : buildApprovalManifestTemplate({ command: required(args.approvalCommand || args.command, '--approval-command'), options: args });
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, dryRun: !execute, result, evidencePath }); return;
   }
 
   if (command === 'apply-plan' || command === 'apply') {
@@ -270,6 +286,8 @@ function plannedAction(command, args) {
     case 'inventory': return `Would create sanitized read-only inventory for selected Chrome/Wix target and adapter readiness${args.out ? ` to ${args.out}` : ''}.`;
     case 'apply-plan':
     case 'apply': return `Would compile routed adapter execution packets from plan ${args.plan || '[missing --plan]'} without mutating Wix; unsafe packets stay blocked until their proof/approval gates pass.`;
+    case 'adapter-contracts': return 'Would emit versioned API/Git/Studio/QA/Publish adapter interfaces with write executors fail-closed.';
+    case 'approval-manifest-template': return `Would generate a non-approved manifest template bound to the exact fingerprint for ${args.approvalCommand || args.command || '[missing --approval-command]'}.`;
     case 'inspect': return 'Would read page title/url, frame inventory, active element, and up to 100 visible controls from attached Chrome tab.';
     case 'snapshot': return `Would capture screenshot${args.out ? ` to ${args.out}` : ''}.`;
     case 'element-map': return `Would map visible controls/inputs/editables and selector hints${args.out ? ` to ${args.out}` : ''}.`;
@@ -333,6 +351,7 @@ async function runDoctor(args, { execute = false } = {}) {
     capabilityRegistry: { operationCount: registrySummary.operationCount, byAdapter: registrySummary.byAdapter, byRisk: registrySummary.byRisk },
     safetyDefaults: {
       dryRunByDefault: true,
+      writeExecutorsFailClosed: true,
       publishFailClosed: true,
       rawApprovalTokensRejected: true,
       twoStepQaRequired: true,
@@ -427,6 +446,8 @@ async function runApplyPlan(args, { execute = false } = {}) {
     packets,
     blockedReasons: blocked.map((packet) => ({ order: packet.order, operation: packet.operation, reason: packet.reason })),
     policy: {
+      adapterContractsVersion: 1,
+      writeExecutorsFailClosed: true,
       officialAdaptersFirst: true,
       apiStructuredObjectsFirst: true,
       gitForCodeAndRollback: true,
@@ -469,18 +490,9 @@ function compileAdapterPacket(action) {
     reason,
     proofRequired: capability.proof || [],
     rollback: capability.rollback || [],
-    execution: executionStubFor(capability.adapter, capability.operation),
+    execution: executionContractFor(capability),
     sourceAction: summarizeAction(action)
   };
-}
-
-function executionStubFor(adapter, operation) {
-  const normalized = String(adapter || '').toLowerCase();
-  if (normalized.includes('api') || normalized.includes('sdk') || normalized.includes('mcp')) return { executor: 'api-adapter', mode: 'not_implemented_fail_closed', operation };
-  if (normalized.includes('git') || normalized.includes('cli')) return { executor: 'git-wix-cli-adapter', mode: 'not_implemented_fail_closed', operation };
-  if (normalized.includes('studio')) return { executor: 'studio-recipe-adapter', mode: 'recipe_required_fail_closed', operation };
-  if (normalized.includes('qa')) return { executor: 'qa-adapter', mode: 'evidence_only', operation };
-  return { executor: 'human-handoff', mode: 'manual_review_required', operation };
 }
 
 function summarizeAction(action) {

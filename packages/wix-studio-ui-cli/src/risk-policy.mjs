@@ -15,6 +15,8 @@ export const READ_ONLY_COMMANDS = new Set([
   'inventory',
   'apply-plan',
   'apply',
+  'adapter-contracts',
+  'approval-manifest-template',
   'inspect',
   'snapshot',
   'element-map',

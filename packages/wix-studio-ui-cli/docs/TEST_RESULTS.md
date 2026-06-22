@@ -92,3 +92,10 @@ publish execute without approval exit: 3
 - PASS: High-risk Publish label is allowed as dry-run planning only.
 - PASS: High-risk Publish execution is blocked without approval.
 - BLOCKED: Live Wix Studio read-only attach proof requires an existing Chrome/Wix session and was intentionally not attempted in this scaffold slice.
+
+## 2026-06-22 16:10 UTC — adapter contract slice
+
+- PASS: `npm run -s check && npm run -s smoke && npm run -s test:guardrails`.
+- PASS: `adapter-contracts` emits versioned API/Git/Studio/QA/Publish/Human contracts with write executors fail-closed.
+- PASS: `approval-manifest-template` emits a non-approved manifest template bound to an exact action fingerprint.
+- PASS_WITH_BLOCKERS: `apply-plan` packets now include adapter execution contracts; real write executors remain intentionally fail-closed until non-client proof + approval gates pass.

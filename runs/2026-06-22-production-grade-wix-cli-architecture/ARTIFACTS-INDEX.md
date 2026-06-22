@@ -57,3 +57,12 @@ Reason: root `.gitignore` excludes `evidence/` and `*.jsonl`; proof summaries ar
 - Spec → recipe skeleton conversion present and locally tested.
 - Real Wix test-site proof: pending.
 - Published Wix-domain proof: pending.
+
+## 2026-06-22 16:10 UTC adapter contract slice
+
+- `adapter-contracts.json` — versioned fail-closed write-adapter interface contracts.
+- `adapter-contracts.stdout.json` — CLI stdout wrapper for adapter contracts command.
+- `approval-manifest-template.text-edit-seo.json` — sample non-approved manifest template bound to exact action fingerprint.
+- `approval-manifest-template.stdout.json` — CLI stdout wrapper for manifest-template command.
+- `apply-plan-with-contracts.json` — routed implementation packets with adapter execution contracts.
+- `apply-plan-with-contracts.stdout.json` — CLI stdout wrapper for contracted apply-plan command.

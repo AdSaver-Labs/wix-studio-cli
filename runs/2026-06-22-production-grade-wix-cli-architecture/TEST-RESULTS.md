@@ -123,3 +123,18 @@ Key checks:
 - Real non-client Wix test-site publish.
 - Real published Wix-domain QA.
 - Production/client readiness.
+
+## 2026-06-22 16:10 UTC — adapter contract slice
+
+Command:
+
+```bash
+npm run -s check && npm run -s smoke && npm run -s test:guardrails
+```
+
+Result: PASS.
+
+Additional proof artifacts:
+- `adapter-contracts.json` — PASS; versioned API/Git/Studio/QA/Publish/Human adapter contracts emitted; write executors remain fail-closed.
+- `approval-manifest-template.text-edit-seo.json` — non-approved manifest template bound to exact `text-edit` action fingerprint.
+- `apply-plan-with-contracts.json` — PASS_WITH_BLOCKERS; 32 packets, 7 read-only ready, 23 staged-needs-proof, 2 approval-blocked; packets now include adapter execution contracts.

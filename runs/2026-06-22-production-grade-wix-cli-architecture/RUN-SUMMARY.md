@@ -55,3 +55,23 @@ The CLI direction is a Wix Site Operating System / change compiler, not a blind 
 - Generated specs: PASS for two-step QA + expanded viewport contract.
 - Generated recipe skeletons: PASS for selector-proof, two-step QA, rollback, and expanded viewport contract.
 - QA Manager initial audit: FAIL before fixes; re-QA pending after this patch.
+
+## 2026-06-22 16:10 UTC — fail-closed write-adapter interface slice
+
+Status: Verified local/read-only architecture slice.
+
+Changed:
+- Added versioned adapter execution contracts for API, Git/Wix CLI, Studio recipe, QA, publish, and human-handoff routes.
+- Added `adapter-contracts` CLI command.
+- Added `approval-manifest-template` CLI command that creates a non-approved manifest bound to an exact action fingerprint.
+- Extended `apply-plan` packets with required inputs, preconditions, postchecks, rollback expectations, and fail-closed executor status.
+
+Verified:
+- Hardening preflight PASS warnings=0.
+- `npm run -s check && npm run -s smoke && npm run -s test:guardrails` PASS.
+- `apply-plan-with-contracts.json`: PASS_WITH_BLOCKERS, 32 packets, 7 read-only ready, 23 staged-needs-proof, 2 blocked.
+
+Still unproven:
+- No real Wix/API/Git/Studio write executor has been run.
+- No test-site publish or client-site mutation was attempted.
+- Production readiness remains blocked until non-client live mutation + two-step QA proof pass.

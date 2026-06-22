@@ -19,7 +19,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['doctor', 'inventory', 'apply-plan', 'apply', 'chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
+const commands = ['doctor', 'inventory', 'adapter-contracts', 'approval-manifest-template', 'apply-plan', 'apply', 'chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -29,6 +29,7 @@ for (const command of commands) {
   if (['site-spec-validate', 'site-build-plan'].includes(command)) args.push('--spec', 'examples/booking-site-spec.example.json');
   if (command === 'capability-explain') args.push('--operation', 'page.about.optimize');
   if (['route-plan', 'apply-plan', 'apply'].includes(command)) args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
+  if (command === 'approval-manifest-template') args.push('--approval-command', 'text-edit', '--label', 'SEO', '--text', 'Fixture title');
   if (['studio-recipe-validate', 'studio-recipe-run'].includes(command)) args.push('--recipe', 'recipes/faq-section.example.json');
   if (command === 'generate-change-spec') args.push('--type', 'about', '--business-name', 'AdSaver', '--industry', 'performance marketing', '--audience', 'service businesses', '--goal', 'turn website visitors into qualified leads');
   if (command === 'generate-recipe-skeleton') args.push('--spec', 'runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/about.spec.json');
@@ -51,7 +52,24 @@ assert(applyPlan.status === 0, 'apply-plan fixture exits 0', applyPlan.stderr ||
 const applyJson = JSON.parse(applyPlan.stdout);
 assert(applyJson.result.readOnlyCompiler === true, 'apply-plan is read-only compiler', applyPlan.stdout);
 assert(applyJson.result.policy.officialAdaptersFirst === true, 'apply-plan keeps official-adapters-first policy', applyPlan.stdout);
+assert(applyJson.result.policy.writeExecutorsFailClosed === true, 'apply-plan keeps write executors fail-closed', applyPlan.stdout);
 assert(applyJson.result.counts.packets > 0, 'apply-plan emits packets', applyPlan.stdout);
+assert(applyJson.result.packets.some((packet) => packet.execution?.contractSchemaVersion === 1), 'apply-plan packets include adapter execution contracts', applyPlan.stdout);
+
+
+const adapterContracts = run(['adapter-contracts']);
+assert(adapterContracts.status === 0, 'adapter-contracts exits 0', adapterContracts.stderr || adapterContracts.stdout);
+const adapterContractsJson = JSON.parse(adapterContracts.stdout).result;
+assert(adapterContractsJson.writeExecutorsFailClosed === true, 'adapter-contracts reports write executors fail-closed', adapterContracts.stdout);
+assert(adapterContractsJson.contracts.some((contract) => contract.executor === 'studio-recipe-adapter'), 'adapter-contracts includes Studio recipe adapter contract', adapterContracts.stdout);
+assert(adapterContractsJson.contracts.some((contract) => contract.executor === 'publish-adapter' && contract.status.includes('fail_closed')), 'adapter-contracts keeps publish adapter fail-closed', adapterContracts.stdout);
+
+const approvalTemplate = run(['approval-manifest-template', '--approval-command', 'text-edit', '--label', 'SEO', '--text', 'hi']);
+assert(approvalTemplate.status === 0, 'approval-manifest-template exits 0', approvalTemplate.stderr || approvalTemplate.stdout);
+const approvalTemplateJson = JSON.parse(approvalTemplate.stdout).result;
+assert(approvalTemplateJson.approved === false, 'approval manifest template is not pre-approved', approvalTemplate.stdout);
+assert(approvalTemplateJson.command === 'text-edit', 'approval manifest template binds requested command', approvalTemplate.stdout);
+assert(approvalTemplateJson.fingerprint && approvalTemplateJson.fingerprint.length === 64, 'approval manifest template includes exact action fingerprint', approvalTemplate.stdout);
 
 const capabilities = run(['capabilities']);
 assert(capabilities.status === 0, 'capabilities exits 0', capabilities.stderr || capabilities.stdout);

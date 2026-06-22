@@ -32,3 +32,9 @@
 - Domain/DNS/payment/order/booking mutations require explicit scoped approval.
 - SEO/indexing/canonical/redirect mutations require approval and before/after proof.
 - Policy/legal pages remain drafts until human/legal review.
+
+## Added after adapter contract slice — 2026-06-22 16:10 UTC
+
+1. Implement one narrow Studio recipe executor proof on non-client `My Site 2`, limited to reversible phone/responsive test-site changes, only after scoped mutation approval.
+2. Capture before/after editor-preview proof, save-state proof, expanded responsive audit, and rollback evidence.
+3. Keep publish adapter fail-closed until preview QA PASS and explicit non-client temporary-domain publish approval manifest are present.
