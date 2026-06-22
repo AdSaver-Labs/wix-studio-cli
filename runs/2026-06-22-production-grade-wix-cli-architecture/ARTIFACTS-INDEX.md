@@ -31,3 +31,13 @@ Reason: root `.gitignore` excludes `evidence/` and `*.jsonl`; proof summaries ar
 - `packages/wix-studio-ui-cli/src/studio-recipes.mjs`
 - `packages/wix-studio-ui-cli/recipes/faq-section.example.json`
 - `packages/wix-studio-ui-cli/recipes/responsive-fixture-text-edit.example.json`
+
+## Page/section generator v1
+- `packages/wix-studio-ui-cli/src/site-generators.mjs`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/faq.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/about.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/header.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/footer.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/product.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/portfolio.spec.json`
+- `runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/policy.spec.json`

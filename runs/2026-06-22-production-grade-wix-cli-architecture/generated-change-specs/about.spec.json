@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-22T13:46:00.209Z",
+  "changeType": "about",
+  "business": {
+    "name": "AdSaver",
+    "industry": "performance marketing and web conversion systems",
+    "audience": "service businesses that need more qualified leads",
+    "tone": "clear, confident, benefit-led, premium but practical",
+    "primaryGoal": "turn mobile website visitors into booked calls and qualified enquiries",
+    "location": null,
+    "language": "en"
+  },
+  "page": {
+    "recommendedPageType": "page",
+    "title": "About AdSaver",
+    "slug": "/about"
+  },
+  "section": {
+    "type": "about_page",
+    "recommendedPlacement": "main navigation and footer"
+  },
+  "content": {
+    "headline": "A sharper way to choose performance marketing and web conversion systems support.",
+    "intro": "AdSaver exists to help service businesses that need more qualified leads move from uncertainty to a clear, professionally executed result.",
+    "blocks": [
+      {
+        "heading": "What we believe",
+        "body": "Good work should be clear, measurable, easy to approve, and built around the way real customers decide."
+      },
+      {
+        "heading": "How we work",
+        "body": "We combine strategy, implementation, mobile-first design, copy, QA, and proof so every change can be inspected before it goes live."
+      },
+      {
+        "heading": "Why clients choose us",
+        "body": "Less guessing, fewer delays, cleaner execution, and a conversion-first website experience that works especially well on phones."
+      }
+    ]
+  },
+  "design": {
+    "layout": "story_sections_with_trust_strip",
+    "visualStyle": "premium editorial layout with human proof, trust markers, and strong CTA",
+    "typography": "consistent H1/H2/body scale; avoid tiny body text on phone"
+  },
+  "responsive": {
+    "policy": "desktop/tablet/phone all required; phone is primary pass/fail",
+    "viewports": [
+      "desktop:1440x900",
+      "tablet:768x1024",
+      "phone:390x844",
+      "phone-small:360x800"
+    ],
+    "mustPass": [
+      "no horizontal overflow",
+      "readable text",
+      "tap targets >=40px",
+      "CTA visible or intentionally placed",
+      "no clipped text/images",
+      "section order makes sense on phone"
+    ],
+    "typeSpecific": []
+  },
+  "conversion": {
+    "primaryCta": "Talk to us",
+    "secondaryCta": "See our work",
+    "trustMarkers": [
+      "process clarity",
+      "proof-based delivery",
+      "mobile-first QA"
+    ]
+  },
+  "seo": {
+    "titleTemplate": "About AdSaver | performance marketing and web conversion systems",
+    "metaDescription": "Learn how AdSaver helps service businesses that need more qualified leads with turn mobile website visitors into booked calls and qualified enquiries.",
+    "h1": "About AdSaver"
+  },
+  "accessibility": {
+    "required": [
+      "semantic heading order",
+      "alt text for meaningful images",
+      "contrast sanity",
+      "keyboard/focus usable for controls",
+      "reduced-motion fallback for animations"
+    ],
+    "typeSpecific": []
+  },
+  "legal": null,
+  "animation": {
+    "allowed": [
+      "subtle fade-in",
+      "gentle reveal",
+      "non-blocking hover states"
+    ],
+    "avoid": [
+      "heavy parallax on phone",
+      "motion that hides content",
+      "effects without reduced-motion fallback"
+    ],
+    "reducedMotion": "static content, no travel/scroll effects"
+  },
+  "implementation": {
+    "preferredAdapter": "content_generator_then_studio_recipe",
+    "requiresRecipe": true,
+    "failClosedOn": [
+      "selector drift",
+      "unexpected dialog",
+      "missing save proof",
+      "missing phone proof"
+    ],
+    "approvalRequiredIf": [
+      "publish",
+      "domain/DNS",
+      "payment/order/booking mutation",
+      "SEO indexing/canonical/redirect mutation",
+      "legal finalization"
+    ]
+  },
+  "proof": {
+    "required": [
+      "typed spec",
+      "routed plan",
+      "before screenshot where mutating existing page",
+      "after screenshot",
+      "save-state proof",
+      "responsive-audit PASS with phone primary",
+      "rollback note"
+    ],
+    "content": [
+      "placeholder scan",
+      "brand/tone fit review",
+      "conversion clarity review"
+    ],
+    "seo": [
+      "title/meta/H1/internal links where page-level change applies"
+    ],
+    "legal": []
+  },
+  "rollback": [
+    "restore previous copy/layout from receipt",
+    "remove inserted section/page if needed",
+    "use Wix site history for visual rollback"
+  ],
+  "assumptions": [
+    "Generated copy/design is a professional starting point and must be adapted to real client facts before publish.",
+    "Phone experience is the primary pass/fail gate because most visitors are expected to arrive on mobile.",
+    "No domain, payment, order, booking, or publish action is implied by this generated spec."
+  ],
+  "fingerprint": "a336153df63d894adfa142b724f94d77814759751d2329e40a93039b40d30898"
+}

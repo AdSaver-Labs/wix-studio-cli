@@ -99,3 +99,17 @@ Proof summary:
 Evidence:
 - `packages/wix-studio-ui-cli/evidence/studio-recipe-fixture-proof/03-phone-after-local-text-edit.png`
 - `packages/wix-studio-ui-cli/evidence/*studio-recipe-run.jsonl` (transient, gitignored)
+
+## Page/section generator proof
+Command:
+
+```bash
+npm run -s check && npm run -s smoke && npm run -s test:guardrails
+```
+
+Result: PASS
+
+Guardrail coverage:
+- `templates` lists supported generator types.
+- `generate-change-spec` is tested for: FAQ, About, Header, Footer, Product, Portfolio, Policy.
+- Each generated spec must include phone-primary responsive policy and `responsive-audit PASS with phone primary` proof requirement.

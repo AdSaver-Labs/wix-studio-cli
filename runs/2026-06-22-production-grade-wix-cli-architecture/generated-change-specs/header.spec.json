@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-22T13:46:00.364Z",
+  "changeType": "header",
+  "business": {
+    "name": "AdSaver",
+    "industry": "performance marketing and web conversion systems",
+    "audience": "service businesses that need more qualified leads",
+    "tone": "clear, confident, benefit-led, premium but practical",
+    "primaryGoal": "turn mobile website visitors into booked calls and qualified enquiries",
+    "location": null,
+    "language": "en"
+  },
+  "page": {
+    "recommendedPageType": "global_section",
+    "title": "Global Header",
+    "slug": null
+  },
+  "section": {
+    "type": "header",
+    "recommendedPlacement": "global site header"
+  },
+  "content": {
+    "logoText": "AdSaver",
+    "nav": [
+      "Services",
+      "Work",
+      "About",
+      "FAQ",
+      "Contact"
+    ],
+    "primaryCta": "Get started"
+  },
+  "design": {
+    "layout": "desktop_horizontal_tablet_compact_phone_drawer",
+    "visualStyle": "sticky optional, clear contrast, CTA visible without crowding",
+    "typography": "nav labels readable and tap-friendly"
+  },
+  "responsive": {
+    "policy": "desktop/tablet/phone all required; phone is primary pass/fail",
+    "viewports": [
+      "desktop:1440x900",
+      "tablet:768x1024",
+      "phone:390x844",
+      "phone-small:360x800"
+    ],
+    "mustPass": [
+      "no horizontal overflow",
+      "readable text",
+      "tap targets >=40px",
+      "CTA visible or intentionally placed",
+      "no clipped text/images",
+      "section order makes sense on phone"
+    ],
+    "typeSpecific": [
+      "phone menu usable",
+      "logo/menu/CTA not crowded"
+    ]
+  },
+  "conversion": {
+    "primaryCta": "Get started",
+    "mobilePriority": [
+      "logo",
+      "menu",
+      "CTA or contact shortcut"
+    ]
+  },
+  "seo": {
+    "notes": "Header links should support crawlable internal navigation without stuffing."
+  },
+  "accessibility": {
+    "required": [
+      "semantic heading order",
+      "alt text for meaningful images",
+      "contrast sanity",
+      "keyboard/focus usable for controls",
+      "reduced-motion fallback for animations"
+    ],
+    "typeSpecific": []
+  },
+  "legal": null,
+  "animation": {
+    "allowed": [
+      "subtle sticky shadow",
+      "menu fade"
+    ],
+    "reducedMotion": "no animated menu travel"
+  },
+  "implementation": {
+    "preferredAdapter": "studio_recipe_last_mile",
+    "requiresRecipe": true,
+    "failClosedOn": [
+      "selector drift",
+      "unexpected dialog",
+      "missing save proof",
+      "missing phone proof"
+    ],
+    "approvalRequiredIf": [
+      "publish",
+      "domain/DNS",
+      "payment/order/booking mutation",
+      "SEO indexing/canonical/redirect mutation",
+      "legal finalization"
+    ]
+  },
+  "proof": {
+    "required": [
+      "typed spec",
+      "routed plan",
+      "before screenshot where mutating existing page",
+      "after screenshot",
+      "save-state proof",
+      "responsive-audit PASS with phone primary",
+      "rollback note"
+    ],
+    "content": [
+      "placeholder scan",
+      "brand/tone fit review",
+      "conversion clarity review"
+    ],
+    "seo": [
+      "title/meta/H1/internal links where page-level change applies"
+    ],
+    "legal": []
+  },
+  "rollback": [
+    "restore previous copy/layout from receipt",
+    "remove inserted section/page if needed",
+    "use Wix site history for visual rollback"
+  ],
+  "assumptions": [
+    "Generated copy/design is a professional starting point and must be adapted to real client facts before publish.",
+    "Phone experience is the primary pass/fail gate because most visitors are expected to arrive on mobile.",
+    "No domain, payment, order, booking, or publish action is implied by this generated spec."
+  ],
+  "fingerprint": "33bd948bb3d06ceb3f46a83d0f373d2ed3aef7f25816c6043692bd5cc92b0fd0"
+}

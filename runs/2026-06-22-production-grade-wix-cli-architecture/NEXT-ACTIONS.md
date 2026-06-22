@@ -45,3 +45,8 @@
   4. product/portfolio section;
   5. policy page draft.
 - Then run the first non-client Wix test-site recipe with QA evidence.
+
+## Updated after page/section generator v1
+- Convert generated specs into recipe skeletons automatically.
+- Add live non-client Wix test-site proof for FAQ/About/header-footer operation classes.
+- Only after that: begin AdSaver demo build on Wix-domain preview with QA gate.

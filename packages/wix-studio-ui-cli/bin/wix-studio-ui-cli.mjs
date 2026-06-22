@@ -7,8 +7,9 @@ import { defaultEvidencePath, logEvidence, writeArtifact } from '../src/evidence
 import { readSiteSpec, validateSiteSpec, buildImplementationPlan } from '../src/site-spec.mjs';
 import { readCapabilityRegistry, summarizeRegistry, explainOperation, routePlanFile } from '../src/capability-registry.mjs';
 import { readStudioRecipe, validateStudioRecipe, dryRunStudioRecipe, runStudioRecipe } from '../src/studio-recipes.mjs';
+import { generateSiteChangeSpec, listSiteChangeTemplates } from '../src/site-generators.mjs';
 
-const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run']);
+const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -60,6 +61,8 @@ Commands:
   route-plan          Route a site-build-plan JSON through safest adapters/proof gates
   studio-recipe-validate Validate a versioned Studio last-mile recipe JSON
   studio-recipe-run   Dry-run or execute a versioned Studio last-mile recipe JSON
+  templates           List supported mobile-first page/section generators
+  generate-change-spec Generate a structured Wix change spec for FAQ/About/header/footer/etc.
 
 Global options:
   --dry-run                Force dry run (default)
@@ -76,6 +79,11 @@ Global options:
   --plan <path>             Plan JSON for route-plan
   --operation <id>          Operation id for capability-explain
   --recipe <path>           Studio recipe JSON for studio-recipe-validate/studio-recipe-run
+  --type <kind>             Change type for generate-change-spec: faq/about/header/footer/product/portfolio/policy/hero/services/cta
+  --business-name <name>    Business/client name for generated change specs
+  --industry <text>         Industry/context for generated change specs
+  --audience <text>         Target audience for generated change specs
+  --goal <text>             Primary conversion/business goal for generated change specs
 
 Examples:
   node bin/wix-studio-ui-cli.mjs chrome-pages --execute --port 9222
@@ -91,6 +99,8 @@ Examples:
   node bin/wix-studio-ui-cli.mjs route-plan --plan evidence/site-build-plan.json --out evidence/routed-plan.json
   node bin/wix-studio-ui-cli.mjs studio-recipe-validate --recipe recipes/faq-section.example.json
   node bin/wix-studio-ui-cli.mjs studio-recipe-run --recipe recipes/faq-section.example.json --dry-run
+  node bin/wix-studio-ui-cli.mjs templates
+  node bin/wix-studio-ui-cli.mjs generate-change-spec --type about --business-name "AdSaver" --industry "performance marketing" --out evidence/about-spec.json
 `;
 }
 
@@ -153,6 +163,13 @@ async function main() {
     if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
     await logEvidence(evidencePath, { phase: 'dry-run', result });
     jsonOut({ command, dryRun: true, result, evidencePath }); return;
+  }
+
+  if (['templates', 'generate-change-spec'].includes(command) && args.dryRun !== true) {
+    const result = command === 'templates' ? listSiteChangeTemplates() : generateSiteChangeSpec(args);
+    if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, result, evidencePath }); return;
   }
 
   if (!execute) {
@@ -223,6 +240,8 @@ function plannedAction(command, args) {
     case 'route-plan': return `Would route site-build-plan JSON through capability registry: ${args.plan || '[missing --plan]'}.`;
     case 'studio-recipe-validate': return `Would validate Studio recipe JSON: ${args.recipe || '[missing --recipe]'}.`;
     case 'studio-recipe-run': return `Would dry-run Studio recipe JSON with preconditions, step hashes, verification, rollback, and phone-primary proof requirements: ${args.recipe || '[missing --recipe]'}.`;
+    case 'templates': return 'Would list supported mobile-first Wix page/section change generators.';
+    case 'generate-change-spec': return `Would generate structured Wix change spec for type=${args.type || '[missing --type]'} with mobile-first proof contract.`;
     default: return 'Would perform read-only local planning.';
   }
 }

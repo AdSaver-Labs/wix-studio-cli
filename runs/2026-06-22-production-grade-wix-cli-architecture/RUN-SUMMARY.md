@@ -79,3 +79,20 @@ Proof:
 - text edit returned `ok=true` and `stableValueCommitted=true`;
 - phone viewport screenshot captured;
 - no Wix/client/live surface touched.
+
+## Additional implemented slice — Page/section generator v1
+- Added `src/site-generators.mjs`.
+- Added commands:
+  - `templates`
+  - `generate-change-spec --type <faq|about|header|footer|product|portfolio|policy|hero|services|cta>`
+- Generated specs include:
+  - content/copy structure;
+  - design/layout guidance;
+  - conversion goals;
+  - SEO requirements;
+  - accessibility requirements;
+  - animation/reduced-motion rules;
+  - implementation adapter recommendation;
+  - phone-primary responsive contract;
+  - proof and rollback contract;
+  - legal review flag for policy pages.

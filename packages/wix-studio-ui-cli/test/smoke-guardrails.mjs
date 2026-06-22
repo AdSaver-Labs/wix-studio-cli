@@ -18,7 +18,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run'];
+const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -29,6 +29,7 @@ for (const command of commands) {
   if (command === 'capability-explain') args.push('--operation', 'page.about.optimize');
   if (command === 'route-plan') args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
   if (['studio-recipe-validate', 'studio-recipe-run'].includes(command)) args.push('--recipe', 'recipes/faq-section.example.json');
+  if (command === 'generate-change-spec') args.push('--type', 'about', '--business-name', 'AdSaver', '--industry', 'performance marketing', '--audience', 'service businesses', '--goal', 'turn website visitors into qualified leads');
   const res = run(args);
   assert(res.status === 0, `${command} dry-run exits 0`, res.stderr || res.stdout);
   assert(res.stdout.includes('"dryRun": true') || ['chrome-pages', 'studio-recipe-validate'].includes(command), `${command} emits dry-run JSON`, res.stdout);
@@ -62,6 +63,19 @@ assert(recipeDryRun.status === 0, 'studio-recipe-run dry-run exits 0', recipeDry
 const recipeDryRunJson = JSON.parse(recipeDryRun.stdout);
 assert(recipeDryRunJson.result.validation.ok === true, 'studio recipe dry-run includes validation', recipeDryRun.stdout);
 assert(recipeDryRunJson.result.steps.some((step) => step.mutates === true), 'studio recipe dry-run identifies mutating steps', recipeDryRun.stdout);
+
+const templates = run(['templates']);
+assert(templates.status === 0, 'templates exits 0', templates.stderr || templates.stdout);
+assert(JSON.parse(templates.stdout).result.supportedChangeTypes.includes('policy'), 'templates includes policy generator', templates.stdout);
+
+for (const type of ['faq', 'about', 'header', 'footer', 'product', 'portfolio', 'policy']) {
+  const generated = run(['generate-change-spec', '--type', type, '--business-name', 'AdSaver', '--industry', 'performance marketing', '--audience', 'service businesses', '--goal', 'turn website visitors into qualified leads']);
+  assert(generated.status === 0, `generate-change-spec ${type} exits 0`, generated.stderr || generated.stdout);
+  const parsed = JSON.parse(generated.stdout);
+  assert(parsed.result.changeType === type, `generate-change-spec ${type} reports type`, generated.stdout);
+  assert(parsed.result.responsive.policy.includes('phone is primary'), `generate-change-spec ${type} includes phone-primary policy`, generated.stdout);
+  assert(parsed.result.proof.required.includes('responsive-audit PASS with phone primary'), `generate-change-spec ${type} requires responsive proof`, generated.stdout);
+}
 
 const noApproval = run(['click-by-label', '--label', 'Publish', '--execute', '--cdp-url', 'ws://127.0.0.1:9/devtools/page/fake']);
 assert(noApproval.status === 3, 'publish-like execute without approval is blocked', noApproval.stderr || noApproval.stdout);

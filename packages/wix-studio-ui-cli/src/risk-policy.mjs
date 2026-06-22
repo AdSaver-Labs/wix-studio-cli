@@ -33,7 +33,9 @@ export const READ_ONLY_COMMANDS = new Set([
   'capabilities',
   'capability-explain',
   'route-plan',
-  'studio-recipe-validate'
+  'studio-recipe-validate',
+  'templates',
+  'generate-change-spec'
 ]);
 
 const APPROVAL_SCHEMA_VERSION = 2;
