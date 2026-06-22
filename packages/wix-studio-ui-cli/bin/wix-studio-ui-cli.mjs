@@ -8,8 +8,10 @@ import { readSiteSpec, validateSiteSpec, buildImplementationPlan } from '../src/
 import { readCapabilityRegistry, summarizeRegistry, explainOperation, routePlanFile } from '../src/capability-registry.mjs';
 import { readStudioRecipe, validateStudioRecipe, dryRunStudioRecipe, runStudioRecipe } from '../src/studio-recipes.mjs';
 import { generateSiteChangeSpec, listSiteChangeTemplates } from '../src/site-generators.mjs';
+import { selectResponsiveViewports, twoStepQaContract, viewportMatrixSummary } from '../src/qa-contract.mjs';
+import { generateRecipeSkeletonFromSpecFile } from '../src/recipe-skeletons.mjs';
 
-const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec']);
+const COMMANDS = new Set(['inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'chrome-pages', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton']);
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -43,10 +45,13 @@ Commands:
   click-by-label      Click a UI control by visible/ARIA/data label (requires --execute)
   text-edit           Edit input/textarea/contenteditable by --selector or --label (requires --execute)
   responsive-mode     Set CDP viewport to desktop/tablet/mobile for preview evidence
-  responsive-audit    Capture desktop/tablet/phone proof and enforce phone-primary layout checks
+  responsive-audit    Capture expanded responsive proof and enforce phone/large-desktop/breakpoint gates
   save-state-detect   Detect visible saved/saving/unsaved/error state text
   diagnostics         Read-only Wix editor failure/hazard scan with remediation guidance
   verification        Emit verification checklist/evidence bundle guidance
+  qa-preview-inspect  First QA gate: editor/context + preview URL proof before publish
+  publish-test-site   Approval-gated publish contract for a non-client Wix test-site/domain
+  qa-published-inspect Second QA gate: Wix-domain rendered proof after test-site publish
   chrome-pages        List debuggable Chrome pages from --port (default 9222)
   read-only-proof     Run a full non-mutating attach proof bundle against a selected Chrome/Wix tab
   context-pack        Alias for read-only-proof; compact one-shot Wix context/proof bundle
@@ -63,6 +68,7 @@ Commands:
   studio-recipe-run   Dry-run or execute a versioned Studio last-mile recipe JSON
   templates           List supported mobile-first page/section generators
   generate-change-spec Generate a structured Wix change spec for FAQ/About/header/footer/etc.
+  generate-recipe-skeleton Convert a generated change spec into a fail-closed Studio recipe skeleton
 
 Global options:
   --dry-run                Force dry run (default)
@@ -91,7 +97,7 @@ Examples:
   node bin/wix-studio-ui-cli.mjs element-map --execute --cdp-url ws://... --out evidence/element-map.json
   node bin/wix-studio-ui-cli.mjs diagnostics --execute --cdp-url ws://...
   node bin/wix-studio-ui-cli.mjs read-only-proof --execute --port 9222 --target-url-contains wix --out evidence/live-readonly
-  node bin/wix-studio-ui-cli.mjs responsive-audit --execute --cdp-url ws://... --url https://example.com --out evidence/responsive
+  node bin/wix-studio-ui-cli.mjs responsive-audit --execute --cdp-url ws://... --url https://example.com --out evidence/responsive --viewports expanded
   node bin/wix-studio-ui-cli.mjs site-spec-validate --spec examples/booking-site-spec.example.json
   node bin/wix-studio-ui-cli.mjs site-build-plan --spec examples/booking-site-spec.example.json --out evidence/site-build-plan.json
   node bin/wix-studio-ui-cli.mjs capabilities
@@ -101,6 +107,7 @@ Examples:
   node bin/wix-studio-ui-cli.mjs studio-recipe-run --recipe recipes/faq-section.example.json --dry-run
   node bin/wix-studio-ui-cli.mjs templates
   node bin/wix-studio-ui-cli.mjs generate-change-spec --type about --business-name "AdSaver" --industry "performance marketing" --out evidence/about-spec.json
+  node bin/wix-studio-ui-cli.mjs generate-recipe-skeleton --spec evidence/about-spec.json --out evidence/about.recipe.json
 `;
 }
 
@@ -118,7 +125,7 @@ function jsonOut(obj) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.h || args._.length === 0) { console.log(help()); return; }
-  const command = args._[0];
+  const command = args._[0] === 'qa' || args._[0] === 'publish' ? `${args._[0]} ${args._[1] || ''}`.trim() : args._[0];
   if (!COMMANDS.has(command)) throw new Error(`Unknown command: ${command}\n\n${help()}`);
 
   const execute = args.execute === true && args.dryRun !== true;
@@ -165,8 +172,8 @@ async function main() {
     jsonOut({ command, dryRun: true, result, evidencePath }); return;
   }
 
-  if (['templates', 'generate-change-spec'].includes(command) && args.dryRun !== true) {
-    const result = command === 'templates' ? listSiteChangeTemplates() : generateSiteChangeSpec(args);
+  if (['templates', 'generate-change-spec', 'generate-recipe-skeleton'].includes(command) && args.dryRun !== true) {
+    const result = command === 'templates' ? listSiteChangeTemplates() : command === 'generate-change-spec' ? generateSiteChangeSpec(args) : await generateRecipeSkeletonFromSpecFile(required(args.spec, '--spec'), args);
     if (args.out) await writeArtifact(args.out, JSON.stringify(result, null, 2));
     await logEvidence(evidencePath, { phase: 'result', result });
     jsonOut({ command, result, evidencePath }); return;
@@ -192,6 +199,12 @@ async function main() {
 
   if (command === 'read-only-proof' || command === 'context-pack') {
     const result = await runReadOnlyProof(args, evidencePath);
+    await logEvidence(evidencePath, { phase: 'result', result });
+    jsonOut({ command, result, evidencePath }); return;
+  }
+
+  if (command === 'publish-test-site') {
+    const result = runPublishTestSiteContract(args);
     await logEvidence(evidencePath, { phase: 'result', result });
     jsonOut({ command, result, evidencePath }); return;
   }
@@ -223,10 +236,13 @@ function plannedAction(command, args) {
     case 'click-by-label': return `Would click visible control matching label: ${args.label || '[missing --label]'}.`;
     case 'text-edit': return `Would edit ${args.selector || args.label || '[missing --selector/--label]'} with ${String(args.text || '').length} chars, then report local DOM commit status.`;
     case 'responsive-mode': return `Would set viewport for mode=${args.mode || 'desktop'} and collect responsive preview evidence guidance.`;
-    case 'responsive-audit': return `Would capture desktop/tablet/phone screenshots and fail if phone has overflow, unreadable text, weak tap targets, hidden CTA/header, or clipped content: ${args.url || args.cdpUrl ? 'target provided' : '[missing --url or --cdp-url]'}.`;
+    case 'responsive-audit': return `Would capture expanded desktop/tablet/phone/breakpoint screenshots and fail if phone, large desktop, or breakpoint edges have overflow, unreadable text, weak tap targets, hidden CTA/header, or clipped content: ${args.url || args.cdpUrl ? 'target provided' : '[missing --url or --cdp-url]'}.`;
     case 'save-state-detect': return 'Would scan visible text for Saved/Saving/Unsaved/Error saving/Draft/Publish/Preview state.';
     case 'diagnostics': return 'Would scan Wix editor symptoms: RTE local-only commits, iframe boundaries, inert CMS panels, stale tab/edit locks, save/publish hazards.';
-    case 'verification': return 'Would emit verification checklist for before/after screenshots, save-state, responsive preview, hazard review, and evidence log.';
+    case 'verification': return 'Would emit verification checklist requiring editor/preview inspection, approval-gated test-site publish, published Wix-domain inspection, expanded responsive proof, rollback, and evidence bundle.';
+    case 'qa-preview-inspect': return 'Would run first QA gate: editor/context proof plus preview URL screenshots and expanded responsive audit before any test-site publish.';
+    case 'publish-test-site': return 'Would validate approval manifest, non-client Wix test-site target, preview PASS, Git sync/status, and rollback plan. Current publisher adapter fails closed until implemented.';
+    case 'qa-published-inspect': return 'Would run second QA gate: browser-rendered published Wix-domain proof, expanded responsive audit, SEO/content sanity, and console/runtime check.';
     case 'read-only-proof': return 'Would discover/select a Chrome tab, attach read-only through CDP, and collect inspect/element-map/frame-map/snapshot/save-state/diagnostics artifacts without mutating Wix.';
     case 'context-pack': return 'Would run the same compact read-only proof bundle as read-only-proof in one CDP session.';
     case 'seo-audit':
@@ -242,6 +258,7 @@ function plannedAction(command, args) {
     case 'studio-recipe-run': return `Would dry-run Studio recipe JSON with preconditions, step hashes, verification, rollback, and phone-primary proof requirements: ${args.recipe || '[missing --recipe]'}.`;
     case 'templates': return 'Would list supported mobile-first Wix page/section change generators.';
     case 'generate-change-spec': return `Would generate structured Wix change spec for type=${args.type || '[missing --type]'} with mobile-first proof contract.`;
+    case 'generate-recipe-skeleton': return `Would convert generated change spec into fail-closed Studio recipe skeleton with selector-proof, two-step QA, and rollback requirements: ${args.spec || '[missing --spec]'}.`;
     default: return 'Would perform read-only local planning.';
   }
 }
@@ -343,6 +360,8 @@ async function runCommand(command, args) {
       return { ok: true, mode: args.mode || 'desktop', viewport, nextEvidence: ['snapshot', 'save-state-detect', 'verification'] };
     }
     if (command === 'responsive-audit') return runResponsiveAudit(client, args);
+    if (command === 'qa-preview-inspect') return runQaPreviewInspect(client, args);
+    if (command === 'qa-published-inspect') return runQaPublishedInspect(client, args);
     if (command === 'verification') return verificationChecklist(args);
     throw new Error(`Unsupported command execution: ${command}`);
   });
@@ -368,18 +387,32 @@ async function runResponsiveAudit(client, args) {
     captures.push({ viewport, assertions, screenshot });
   }
   const phoneCaptures = captures.filter((capture) => capture.viewport.phonePrimary);
+  const largeDesktopCaptures = captures.filter((capture) => capture.viewport.category === 'large-desktop');
+  const breakpointCaptures = captures.filter((capture) => capture.viewport.category === 'breakpoint-edge');
   const blockingIssues = captures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
   const phoneBlockingIssues = phoneCaptures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
+  const largeDesktopBlockingIssues = largeDesktopCaptures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
+  const breakpointBlockingIssues = breakpointCaptures.flatMap((capture) => capture.assertions.issues.map((issue) => ({ viewport: capture.viewport.name, issue })));
   const result = {
-    status: phoneBlockingIssues.length ? 'FAIL_PHONE_PRIMARY' : blockingIssues.length ? 'PASS_PHONE_WITH_DESKTOP_TABLET_WARNINGS' : 'PASS',
+    status: phoneBlockingIssues.length ? 'FAIL_PHONE_PRIMARY'
+      : largeDesktopBlockingIssues.length ? 'FAIL_LARGE_DESKTOP'
+        : breakpointBlockingIssues.length ? 'FAIL_BREAKPOINT_EDGE'
+          : blockingIssues.length ? 'FAIL_RESPONSIVE_MATRIX'
+            : 'PASS',
     phonePrimary: true,
+    largeDesktopRequired: true,
+    breakpointEdgesRequired: true,
     targetUrl: args.url || null,
-    checkedViewports: viewports.map((v) => ({ name: v.name, width: v.width, height: v.height, phonePrimary: !!v.phonePrimary })),
+    checkedViewports: viewports.map((v) => ({ name: v.name, width: v.width, height: v.height, category: v.category || null, phonePrimary: !!v.phonePrimary, required: v.required !== false })),
     blockingIssues,
     phoneBlockingIssues,
+    largeDesktopBlockingIssues,
+    breakpointBlockingIssues,
     captures,
     professionalDesignGate: {
       phoneMustPass: true,
+      largeDesktopMustPass: true,
+      breakpointEdgesMustPass: true,
       desktopTabletMustBeReviewed: true,
       requiredManualReview: ['visual hierarchy', 'brand fit', 'conversion clarity', 'copy quality', 'animation tastefulness']
     }
@@ -388,16 +421,71 @@ async function runResponsiveAudit(client, args) {
   return result;
 }
 
-function responsiveViewports(args) {
-  const requested = String(args.viewports || 'desktop,tablet,phone,phone-small').split(',').map((x) => x.trim()).filter(Boolean);
-  const map = {
-    desktop: { name: 'desktop', width: 1440, height: 900, mobile: false },
-    tablet: { name: 'tablet', width: 768, height: 1024, mobile: true },
-    phone: { name: 'phone', width: 390, height: 844, mobile: true, phonePrimary: true },
-    'phone-small': { name: 'phone-small', width: 360, height: 800, mobile: true, phonePrimary: true },
-    'phone-large': { name: 'phone-large', width: 430, height: 932, mobile: true, phonePrimary: true }
+async function runQaPreviewInspect(client, args) {
+  const outDir = args.out || `evidence/qa-preview-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  const inspect = valueOf(await client.evaluate(inspectScript()));
+  const saveState = valueOf(await client.evaluate(saveStateDetectScript()));
+  const diagnostics = enrichDiagnostics(valueOf(await client.evaluate(diagnosticsScript())));
+  const responsive = await runResponsiveAudit(client, { ...args, out: `${outDir.replace(/\/$/, '')}/responsive-preview`, viewports: args.viewports || 'expanded' });
+  const result = {
+    gate: 'editor-preview-inspection',
+    status: responsive.status === 'PASS' ? 'PASS' : 'FAIL',
+    twoStepQa: twoStepQaContract(),
+    editorContext: { title: inspect?.title || null, url: inspect?.url || null, likelyWixStudio: !!inspect?.isLikelyWixStudio },
+    saveState: saveState?.state || 'unknown',
+    diagnostics: { wixLikely: !!diagnostics?.wixLikely, hazards: diagnostics?.hazards || [], symptoms: diagnostics?.symptoms || [] },
+    responsive,
+    nextRequiredGate: 'published-wix-domain-inspection',
+    completionRule: 'Preview/editor PASS is necessary but never sufficient; published Wix-domain proof is still required.'
   };
-  return requested.map((name) => map[name]).filter(Boolean);
+  await writeArtifact(`${outDir.replace(/\/$/, '')}/qa-preview-inspection.json`, JSON.stringify(result, null, 2));
+  return result;
+}
+
+async function runQaPublishedInspect(client, args) {
+  const url = required(args.url, '--url');
+  if (!/^https:\/\//i.test(url)) throw new Error('PUBLISHED_QA_REQUIRES_HTTPS_URL');
+  if (!/\.wixsite\.com\b|\.wixstudio\.io\b|\.editorx\.io\b/i.test(new URL(url).hostname)) {
+    throw new Error('PUBLISHED_QA_REQUIRES_WIX_DOMAIN_URL: use the real non-client Wix-domain test URL, not editor/preview/custom production domain.');
+  }
+  const outDir = args.out || `evidence/qa-published-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  const responsive = await runResponsiveAudit(client, { ...args, out: `${outDir.replace(/\/$/, '')}/responsive-published`, viewports: args.viewports || 'expanded' });
+  const seo = await runSeoAudit({ ...args, url });
+  const result = {
+    gate: 'published-wix-domain-inspection',
+    status: responsive.status === 'PASS' ? 'PASS' : 'FAIL',
+    publishedUrl: url,
+    twoStepQa: twoStepQaContract(),
+    responsive,
+    seo,
+    requiredManualReview: ['visual parity vs editor/preview', 'CTA/navigation click sanity', 'console/runtime warning scan where available', 'content placeholder scan'],
+    completionRule: 'A Wix change is not done unless this published Wix-domain gate and editor-preview-inspection both pass.'
+  };
+  await writeArtifact(`${outDir.replace(/\/$/, '')}/qa-published-inspection.json`, JSON.stringify(result, null, 2));
+  return result;
+}
+
+function runPublishTestSiteContract(args) {
+  return {
+    status: 'BLOCKED_PUBLISHER_ADAPTER_NOT_IMPLEMENTED',
+    command: 'publish-test-site',
+    failClosed: true,
+    reason: 'The CLI validates the approval contract but intentionally does not click Wix Publish until a versioned publisher adapter is implemented and proven on a non-client test site.',
+    requiredBeforeImplementation: [
+      'explicit non-client Wix test-site target',
+      'approval manifest bound to this exact action fingerprint',
+      'Git clean/synced status or documented diff receipt',
+      'qa-preview-inspect PASS',
+      'rollback/restore plan',
+      'post-publish qa-published-inspect must run against the Wix-domain URL'
+    ],
+    twoStepQa: twoStepQaContract(),
+    target: args.target || args.url || null
+  };
+}
+
+function responsiveViewports(args) {
+  return selectResponsiveViewports(args.viewports || 'expanded');
 }
 
 function responsiveAssertionScript(viewportName) {
@@ -485,23 +573,28 @@ function diagnosticsGuidance(scan = {}) {
 function verificationChecklist(args) {
   return {
     target: args.target || 'Wix Studio Editor tab',
+    lifecycleGate: 'brief → typed spec → routed plan → editor/preview inspection → controlled mutation → save proof → preview QA → approval-gated test-site publish → published Wix-domain QA → evidence bundle → QA verdict → rollback path',
     requiredEvidence: [
       'chrome-pages selected URL/title for account/site confirmation, preferably aprehasuppga@mail.com session context when visible',
       'before snapshot',
       'element-map and frame-map with target label/selector',
       'dry-run plan JSONL entry showing action fingerprint for high-risk intents',
       'post-action save-state-detect result with state=saved_visible or documented block',
-      'desktop/tablet/mobile preview screenshots for visual changes',
-      'diagnostics output confirming no publish/delete/domain/payment hazards were touched',
-      'rollback note before publish-impacting or destructive actions'
+      'editor_preview_inspection PASS: selected editor URL/title, before/after screenshots, save-state proof, preview URL, preview screenshots',
+      'responsive-audit PASS with expanded viewport matrix: 1366x768, 1440x900, 1920x1080, 2560x1440, 1024x768, 768x1024, 430x932, 390x844, 375x812, 360x800, and breakpoint edges 320/480/767/768/1023/1024/1279/1280',
+      'published_wix_domain_inspection PASS after approval-gated test-site publish: Wix-domain URL, browser-rendered screenshots, responsive audit, SEO/content sanity, console/runtime check where available',
+      'diagnostics output confirming no delete/domain/payment/client booking hazards were touched',
+      'evidence bundle manifest with URLs, screenshots, route plan, receipts, failures, QA verdict, and rollback path'
     ],
     blockedWithoutApprovalManifest: ['publish/unpublish', 'delete/remove/truncate', 'domain/DNS', 'payment/checkout/order/booking', 'SEO/indexing/canonical/redirect'],
     approvalManifestShape: {
       schemaVersion: 2,
       approved: true,
-      command: 'text-edit',
+      command: 'publish-test-site',
       fingerprint: '<from dry-run risk.fingerprint>',
       operator: '<human/operator>',
+      target: { siteType: 'non-client Wix test site', wixDomainUrl: '<*.wixsite.com test URL>' },
+      proofRequired: ['editor_preview_inspection PASS', 'git_sync_status', 'rollback_plan', 'published_wix_domain_inspection PASS'],
       rollbackPlan: '<specific rollback path>',
       issuedAt: new Date().toISOString(),
       expiresAt: '<ISO timestamp within approval window>'

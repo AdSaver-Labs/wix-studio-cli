@@ -18,6 +18,8 @@ export const READ_ONLY_COMMANDS = new Set([
   'diagnostics',
   'save-state-detect',
   'verification',
+  'qa-preview-inspect',
+  'qa-published-inspect',
   'chrome-pages',
   'read-only-proof',
   'context-pack',
@@ -35,7 +37,8 @@ export const READ_ONLY_COMMANDS = new Set([
   'route-plan',
   'studio-recipe-validate',
   'templates',
-  'generate-change-spec'
+  'generate-change-spec',
+  'generate-recipe-skeleton'
 ]);
 
 const APPROVAL_SCHEMA_VERSION = 2;

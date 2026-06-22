@@ -1,4 +1,13 @@
-# Test Results — Production-Grade Wix CLI Architecture
+# Test Results — Wix CLI Site OS Architecture Candidate
+
+## Hardening preflight
+Command:
+
+```bash
+/home/Alej/.openclaw/workspace/3-Resources/agent-ops-hardening/scripts/preflight-guardrail-pack.sh /home/Alej/.openclaw/workspace wix-cli-two-step-qa-contract
+```
+
+Result: PASS — warnings=0.
 
 ## Local static / guardrail gates
 Command:
@@ -7,54 +16,91 @@ Command:
 npm run -s check && npm run -s smoke && npm run -s test:guardrails
 ```
 
-Result: PASS
+Result: PASS.
 
 Evidence:
 - `npm run -s check`: Node syntax checks passed for bin/src/test modules.
 - `npm run -s smoke`: help + core dry-run commands passed.
-- `npm run -s test:guardrails`: PASS smoke-guardrails.
+- `npm run -s test:guardrails`: `PASS smoke-guardrails`.
 
-## Post-fix verification
-Command:
+## Self-heal note
+One guardrail run failed after command names changed from spaced plan labels to executable hyphenated commands. Ran the hardening self-heal wrapper for diagnosis, then patched tests/route mapping from:
+- `qa preview-inspect` → `qa-preview-inspect`
+- `publish test-site` → `publish-test-site`
+- `qa published-inspect` → `qa-published-inspect`
 
-```bash
-npm run -s check && npm run -s test:guardrails
-```
+Re-run result: PASS.
 
-Result: PASS
-
-## Executable responsive audit proof
+## Expanded responsive audit proof
 Command shape:
 
 ```bash
-chromium --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9333 about:blank
+chromium --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9335 \
+  "file://$PWD/test/responsive-fixture.html"
 node bin/wix-studio-ui-cli.mjs responsive-audit \
   --execute \
   --cdp-url "$WS" \
-  --url "file://$PWD/test/responsive-fixture.html" \
-  --out evidence/responsive-fixture-proof
+  --out evidence/responsive-fixture-proof-expanded \
+  --viewports expanded \
+  --settle-ms 100
 ```
 
-Initial result: FAIL_PHONE_PRIMARY — expected/correct, fixture had weak tap targets and clipped H1.
-
-After fixture repair: PASS
-
-Proof summary:
+Result:
 
 ```json
 {
   "status": "PASS",
-  "captures": 4,
-  "phoneBlockingIssues": 0
+  "checkedViewports": 18,
+  "phone": 0,
+  "large": 0,
+  "breakpoint": 0
 }
 ```
 
-Generated proof artifacts:
-- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof/responsive-audit.json`
-- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof/desktop-1440x900.png`
-- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof/tablet-768x1024.png`
-- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof/phone-390x844.png`
-- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof/phone-small-360x800.png`
+Artifact:
+- `packages/wix-studio-ui-cli/evidence/responsive-fixture-proof-expanded/responsive-audit.json`
+
+## Generated change-spec proof
+Command shape:
+
+```bash
+for type in faq about header footer product portfolio policy; do
+  node packages/wix-studio-ui-cli/bin/wix-studio-ui-cli.mjs generate-change-spec \
+    --type "$type" \
+    --business-name "Wix Test Site" \
+    --industry "professional services" \
+    --out "runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/${type}.spec.json"
+done
+```
+
+Result: PASS.
+
+Each generated spec includes:
+- 18 responsive viewports.
+- `editor-preview-inspection` gate.
+- `published-wix-domain-inspection` gate.
+- 10 required proof items.
+
+## Generated recipe skeleton proof
+Command shape:
+
+```bash
+for spec in runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/*.spec.json; do
+  base=$(basename "$spec" .spec.json)
+  node packages/wix-studio-ui-cli/bin/wix-studio-ui-cli.mjs generate-recipe-skeleton \
+    --spec "$spec" \
+    --out "runs/2026-06-22-production-grade-wix-cli-architecture/generated-recipe-skeletons/${base}.recipe.json"
+done
+```
+
+Result: PASS.
+
+Guardrail coverage confirms generated recipe skeletons include:
+- `/inputs/buttons/selectors`
+- `/selectors/evidence-compatible`
+- `/ARIA/data`
+- `published-wix-domain-inspection`
+- 18 responsive viewports.
 
 ## Capability routing proof
 Command:
@@ -65,51 +111,15 @@ node bin/wix-studio-ui-cli.mjs site-build-plan --spec examples/booking-site-spec
 node bin/wix-studio-ui-cli.mjs route-plan --plan runs/2026-06-22-production-grade-wix-cli-architecture/site-build-plan.json --out runs/2026-06-22-production-grade-wix-cli-architecture/routed-plan.json
 ```
 
-Result: PASS
+Result: PASS by guardrail coverage.
 
-Key output:
-- capability registry operations: 63
-- route-plan fixture actions: 29
-- missing capability mappings in fixture: 0
+Key checks:
+- capability registry operations: 63.
+- route-plan includes `qa-preview-inspect`, `publish-test-site`, and `qa-published-inspect`.
+- missing capability mappings in fixture: 0.
 
-## Executable Studio recipe proof
-Command shape:
-
-```bash
-node bin/wix-studio-ui-cli.mjs studio-recipe-run \
-  --execute \
-  --mutation-ok \
-  --cdp-url "$WS" \
-  --recipe recipes/responsive-fixture-text-edit.example.json \
-  --out evidence/studio-recipe-fixture-proof
-```
-
-Result: PASS
-
-Proof summary:
-
-```json
-{
-  "status": "PASS",
-  "textEdit": true,
-  "screenshots": 1
-}
-```
-
-Evidence:
-- `packages/wix-studio-ui-cli/evidence/studio-recipe-fixture-proof/03-phone-after-local-text-edit.png`
-- `packages/wix-studio-ui-cli/evidence/*studio-recipe-run.jsonl` (transient, gitignored)
-
-## Page/section generator proof
-Command:
-
-```bash
-npm run -s check && npm run -s smoke && npm run -s test:guardrails
-```
-
-Result: PASS
-
-Guardrail coverage:
-- `templates` lists supported generator types.
-- `generate-change-spec` is tested for: FAQ, About, Header, Footer, Product, Portfolio, Policy.
-- Each generated spec must include phone-primary responsive policy and `responsive-audit PASS with phone primary` proof requirement.
+## Unproven
+- Real Wix Studio editor mutation.
+- Real non-client Wix test-site publish.
+- Real published Wix-domain QA.
+- Production/client readiness.

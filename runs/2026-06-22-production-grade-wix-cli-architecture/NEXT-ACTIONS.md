@@ -1,25 +1,21 @@
 # Next Actions
 
-## Immediate CLI build slices
-1. Studio recipe framework v1
-   - `studio recipe validate`
-   - `studio recipe dry-run`
-   - `studio recipe run --execute --approval-manifest`
-   - recipe schema with preconditions, selectors, expected states, verification steps, rollback notes.
+## Remaining 4 execution points
+1. Automatic spec → recipe skeleton conversion — DONE LOCALLY
+   - Generated specs now convert into Studio recipe skeletons with selectors, preconditions, verification, rollback, and two-step QA requirements.
 
-2. Section/page generators
-   - typed generators for FAQ page/section, About page, header, footer, portfolio, product cards, policy pages.
-   - mobile-first content/layout rules embedded in generated specs.
+2. Non-client Wix test-site proof — NEXT
+   - Run a safe FAQ/About/header-footer operation class only on a non-client Wix test site.
+   - Capture save-state, editor/preview screenshots, and `qa-preview-inspect` proof.
 
-3. Receipts ledger
-   - every mutation gets input hash, adapter, readback, proof paths, rollback plan.
+3. Approval-gated test-site publish + published Wix-domain QA — PENDING TEST-SITE PROOF/APPROVAL
+   - Use `publish-test-site` only with explicit approval manifest and non-client test-site target.
+   - Then run `qa-published-inspect --url <wix-domain>`.
+   - Completion requires both editor/preview QA and real published Wix-domain QA.
 
-4. Wix non-client test-site proof
-   - run one safe recipe on a Wix test site only.
-   - prove before/after screenshots, save state, preview URL, responsive-audit PASS.
-
-5. QA Manager verdict loop
-   - after each executable Wix slice, request PASS/FAIL/BLOCKED verdict with evidence bundle.
+4. QA Manager final verdict loop — RE-RUN AFTER THIS PATCH AND AGAIN AFTER LIVE TEST-SITE PROOF
+   - Request PASS/FAIL/BLOCKED after all evidence exists.
+   - QA must check both gates, 18-viewport responsive proof, rollback, and no production/client mutation.
 
 ## Before AdSaver website build
 - CLI must pass at least one live non-client Wix Studio proof for the same operation class:
@@ -27,26 +23,12 @@
   - header/footer rework;
   - copy application;
   - responsive audit;
-  - save/preview proof.
-
-## GitHub
-- Commit/push this architecture + responsive proof slice after review or as soon as operator confirms push is allowed for this repo state.
+  - save/preview proof;
+  - published Wix-domain proof.
 
 ## Safety
 - Do not attach domains.
 - Do not publish production/client sites without explicit approval.
-- Wix-domain publish for AdSaver demo is allowed only after CLI proof and QA verdict.
-
-## Updated after Studio recipe framework v1
-- Next implementation slice should add higher-level generators that emit recipe/spec pairs for:
-  1. FAQ section/page;
-  2. About page;
-  3. global header/footer;
-  4. product/portfolio section;
-  5. policy page draft.
-- Then run the first non-client Wix test-site recipe with QA evidence.
-
-## Updated after page/section generator v1
-- Convert generated specs into recipe skeletons automatically.
-- Add live non-client Wix test-site proof for FAQ/About/header-footer operation classes.
-- Only after that: begin AdSaver demo build on Wix-domain preview with QA gate.
+- Domain/DNS/payment/order/booking mutations require explicit scoped approval.
+- SEO/indexing/canonical/redirect mutations require approval and before/after proof.
+- Policy/legal pages remain drafts until human/legal review.

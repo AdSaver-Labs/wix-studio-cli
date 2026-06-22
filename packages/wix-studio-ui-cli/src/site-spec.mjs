@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { qaProofRequirements, twoStepQaContract, viewportMatrixSummary } from './qa-contract.mjs';
 
 const REQUIRED_BOOKING_PAGES = ['home', 'properties', 'property-detail', 'booking', 'contact'];
 const REQUIRED_HOME_SECTIONS = ['hero', 'trust', 'featured-properties', 'how-it-works', 'cta'];
-const REQUIRED_PROOF_GATES = ['desktop-screenshot', 'mobile-screenshot', 'save-state', 'public-seo-proof'];
+const REQUIRED_PROOF_GATES = ['editor-preview-inspection', 'published-wix-domain-inspection', 'responsive-audit-expanded', 'phone-primary-proof', 'large-desktop-proof', 'breakpoint-edge-proof', 'save-state', 'public-seo-proof', 'evidence-bundle'];
 
 export async function readSiteSpec(specPath) {
   if (!specPath) throw new Error('Missing required option --spec');
@@ -117,9 +118,12 @@ export function buildImplementationPlan(spec) {
   for (const property of spec.properties || []) {
     add('booking-data', 'plan-property-card', 'approval_required_if_live_booking', `Add property card/detail for ${property.name}; booking target must remain test/draft unless Alej approves live integration.`, ['booking link/widget proof', 'no live payment mutation']);
   }
-  add('responsive', 'responsive-mode', 'read_only', 'Capture desktop/tablet/mobile visual proof and note breakpoints needing manual polish.', ['desktop screenshot', 'tablet screenshot', 'mobile screenshot']);
-  add('seo', 'public-seo-proof', 'read_only_after_publish_or_preview', 'Run public/readable SEO proof only against preview/public test URL, not client production.', ['title/meta/canonical/OG/headings proof']);
-  add('handoff', 'verification', 'read_only', 'Emit final proof checklist and remaining unproven gaps before touching real booking website.', ['verification JSON', 'operator summary']);
+  add('qa-preview', 'qa-preview-inspect', 'read_only', 'Mandatory first QA gate: inspect selected editor context plus preview URL before publish. Preview is necessary but not sufficient for completion.', ['editor-preview-inspection PASS', 'editor URL/title', 'before/after screenshots', 'save-state', 'preview URL screenshots']);
+  add('responsive', 'responsive-audit --viewports expanded', 'read_only', 'Capture expanded professional viewport matrix, including large desktop/27-inch, tablet, phones, and breakpoint edges.', ['responsive-audit-expanded PASS', 'phone-primary-proof', 'large-desktop-proof', 'breakpoint-edge-proof']);
+  add('publish-gate', 'publish-test-site', 'publish_approval_required', 'Approval-gated publish only to explicit non-client Wix test-site target after Git sync/status, preview PASS, approval manifest, and rollback plan.', ['approval manifest', 'test-site target', 'git sync/status', 'preview PASS', 'rollback plan']);
+  add('qa-published', 'qa-published-inspect', 'read_only_after_publish', 'Mandatory second QA gate: inspect the real published Wix-domain URL after test-site publish; do not treat preview as published proof.', ['published Wix-domain URL', 'browser-rendered screenshots', 'responsive audit', 'SEO/content sanity', 'console/runtime check where available']);
+  add('seo', 'public-seo-proof', 'read_only_after_publish', 'Run public/readable SEO proof against the published Wix-domain test URL, not only preview and not client production.', ['title/meta/canonical/OG/headings proof']);
+  add('handoff', 'verification', 'read_only', 'Emit final evidence bundle checklist and remaining unproven gaps before touching real booking website.', ['verification JSON', 'evidence bundle manifest', 'operator summary']);
 
   return {
     status: validation.ok ? 'PASS' : 'BLOCKED_SPEC_INVALID',
@@ -127,12 +131,15 @@ export function buildImplementationPlan(spec) {
     businessName: spec.businessName,
     siteType: spec.siteType,
     validation,
+    twoStepQa: twoStepQaContract(),
+    viewportMatrix: viewportMatrixSummary(),
+    requiredProof: qaProofRequirements(),
     phases: summarizePhases(actions),
     actions,
     mutationPolicy: {
       default: 'dry-run/read-only first',
       liveClientSite: 'blocked until test-site proof and explicit Alej approval',
-      publish: 'blocked without approval manifest and proof gates',
+      publish: 'blocked without approval manifest, explicit non-client test-site target, preview PASS, rollback plan, and post-publish Wix-domain proof',
       bookingPaymentsOrders: 'blocked without explicit approval and sandbox/test evidence'
     }
   };

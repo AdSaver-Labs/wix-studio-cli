@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { viewportNames, viewportMatrixSummary, twoStepQaContract, qaProofRequirements } from './qa-contract.mjs';
 
 const SUPPORTED_CHANGE_TYPES = new Set(['faq', 'about', 'header', 'footer', 'product', 'portfolio', 'policy', 'hero', 'services', 'cta']);
 
@@ -41,6 +42,8 @@ export function listSiteChangeTemplates() {
     status: 'PASS',
     supportedChangeTypes: [...SUPPORTED_CHANGE_TYPES],
     mobileFirstPolicy: 'desktop/tablet/phone are all required; phone is primary pass/fail for professional completion',
+    viewportMatrix: viewportMatrixSummary(),
+    twoStepQa: twoStepQaContract(),
     highRiskNotes: {
       policy: 'draft only until human/legal review',
       product: 'live store/order/payment changes require explicit approval',
@@ -65,6 +68,7 @@ function normalizeContext(options) {
     assumptions: [
       'Generated copy/design is a professional starting point and must be adapted to real client facts before publish.',
       'Phone experience is the primary pass/fail gate because most visitors are expected to arrive on mobile.',
+      'Published Wix-domain proof is required separately from editor/preview proof because Wix preview/editor rendering can differ from the real published site.',
       'No domain, payment, order, booking, or publish action is implied by this generated spec.'
     ]
   };
@@ -165,8 +169,8 @@ function genericSection(ctx, type, headline, placement) {
 
 function responsiveContract(type) {
   return {
-    policy: 'desktop/tablet/phone all required; phone is primary pass/fail',
-    viewports: ['desktop:1440x900', 'tablet:768x1024', 'phone:390x844', 'phone-small:360x800'],
+    policy: 'expanded desktop/tablet/phone/breakpoint matrix required; phone is primary pass/fail; large desktop/27-inch and breakpoint edges are also blocking for professional completion when layout breaks',
+    viewports: viewportNames(),
     mustPass: ['no horizontal overflow', 'readable text', 'tap targets >=40px', 'CTA visible or intentionally placed', 'no clipped text/images', 'section order makes sense on phone'],
     typeSpecific: type === 'header' ? ['phone menu usable', 'logo/menu/CTA not crowded'] : type === 'product' ? ['CTA easy to reach', 'price/offer clarity on phone'] : []
   };
@@ -192,14 +196,15 @@ function implementationContract(type) {
   return {
     preferredAdapter: adapterByType[type] || 'studio_recipe_or_blocks',
     requiresRecipe: ['header', 'footer', 'faq', 'about', 'product', 'portfolio', 'policy'].includes(type),
-    failClosedOn: ['selector drift', 'unexpected dialog', 'missing save proof', 'missing phone proof'],
+    failClosedOn: ['selector drift', 'unexpected dialog', 'missing save proof', 'missing editor/preview proof', 'missing published Wix-domain proof', 'missing expanded responsive proof'],
     approvalRequiredIf: ['publish', 'domain/DNS', 'payment/order/booking mutation', 'SEO indexing/canonical/redirect mutation', 'legal finalization']
   };
 }
 
 function proofContract(type) {
   return {
-    required: ['typed spec', 'routed plan', 'before screenshot where mutating existing page', 'after screenshot', 'save-state proof', 'responsive-audit PASS with phone primary', 'rollback note'],
+    required: qaProofRequirements(),
+    twoStepQa: twoStepQaContract(),
     content: ['placeholder scan', 'brand/tone fit review', 'conversion clarity review'],
     seo: ['title/meta/H1/internal links where page-level change applies'],
     legal: type === 'policy' ? ['human/legal review required before publish'] : []

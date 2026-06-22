@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-22T13:46:00.847Z",
+  "generatedAt": "2026-06-22T14:08:08.680Z",
   "changeType": "portfolio",
   "business": {
-    "name": "AdSaver",
-    "industry": "performance marketing and web conversion systems",
-    "audience": "service businesses that need more qualified leads",
+    "name": "Wix Test Site",
+    "industry": "professional services",
+    "audience": "mobile-first visitors comparing providers",
     "tone": "clear, confident, benefit-led, premium but practical",
-    "primaryGoal": "turn mobile website visitors into booked calls and qualified enquiries",
+    "primaryGoal": "convert qualified visitors into enquiries",
     "location": null,
     "language": "en"
   },
@@ -36,12 +36,26 @@
     "typography": "case titles clear; metadata secondary but readable"
   },
   "responsive": {
-    "policy": "desktop/tablet/phone all required; phone is primary pass/fail",
+    "policy": "expanded desktop/tablet/phone/breakpoint matrix required; phone is primary pass/fail; large desktop/27-inch and breakpoint edges are also blocking for professional completion when layout breaks",
     "viewports": [
+      "desktop-27in:2560x1440",
+      "desktop-wide:1920x1080",
       "desktop:1440x900",
+      "desktop-laptop:1366x768",
+      "breakpoint-1280:1280x900",
+      "breakpoint-1279:1279x900",
+      "tablet-landscape:1024x768",
+      "breakpoint-1024:1024x768",
+      "breakpoint-1023:1023x900",
       "tablet:768x1024",
+      "breakpoint-768:768x1024",
+      "breakpoint-767:767x1024",
+      "breakpoint-480:480x900",
+      "phone-large:430x932",
       "phone:390x844",
-      "phone-small:360x800"
+      "phone-iphone12:375x812",
+      "phone-small:360x800",
+      "breakpoint-320:320x800"
     ],
     "mustPass": [
       "no horizontal overflow",
@@ -100,7 +114,9 @@
       "selector drift",
       "unexpected dialog",
       "missing save proof",
-      "missing phone proof"
+      "missing editor/preview proof",
+      "missing published Wix-domain proof",
+      "missing expanded responsive proof"
     ],
     "approvalRequiredIf": [
       "publish",
@@ -112,14 +128,47 @@
   },
   "proof": {
     "required": [
-      "typed spec",
-      "routed plan",
-      "before screenshot where mutating existing page",
-      "after screenshot",
-      "save-state proof",
-      "responsive-audit PASS with phone primary",
-      "rollback note"
+      "typed spec and routed plan",
+      "editor-preview-inspection PASS",
+      "published-wix-domain-inspection PASS",
+      "responsive-audit PASS with expanded viewport matrix",
+      "phone-primary checks PASS",
+      "large desktop / 27-inch checks PASS",
+      "breakpoint-edge checks PASS",
+      "content/placeholder scan PASS",
+      "SEO/content sanity proof PASS where page-level change applies",
+      "rollback note or restore path captured"
     ],
+    "twoStepQa": {
+      "status": "REQUIRED",
+      "gates": [
+        {
+          "id": "editor-preview-inspection",
+          "label": "Editor/preview inspection",
+          "requiredEvidence": [
+            "selected Wix Studio editor URL/title",
+            "before screenshot for existing-page mutations",
+            "after editor or preview screenshot",
+            "save-state evidence",
+            "preview URL or preview-rendered page proof",
+            "responsive-audit result for preview/editor-rendered surface"
+          ]
+        },
+        {
+          "id": "published-wix-domain-inspection",
+          "label": "Published Wix-domain inspection",
+          "requiredEvidence": [
+            "published Wix-domain URL, not only editor or preview URL",
+            "browser-rendered screenshots as a real user sees the site",
+            "responsive-audit result against the published Wix-domain URL",
+            "public SEO/content sanity proof",
+            "navigation/CTA/link click sanity proof",
+            "console/runtime warning scan where available"
+          ]
+        }
+      ],
+      "completionRule": "A Wix website/change cannot be called done until both editor/preview inspection and published Wix-domain inspection pass, or a named gate is explicitly BLOCKED with the missing proof."
+    },
     "content": [
       "placeholder scan",
       "brand/tone fit review",
@@ -138,7 +187,8 @@
   "assumptions": [
     "Generated copy/design is a professional starting point and must be adapted to real client facts before publish.",
     "Phone experience is the primary pass/fail gate because most visitors are expected to arrive on mobile.",
+    "Published Wix-domain proof is required separately from editor/preview proof because Wix preview/editor rendering can differ from the real published site.",
     "No domain, payment, order, booking, or publish action is implied by this generated spec."
   ],
-  "fingerprint": "f2e19010e6f77a8326da734d912f8982223f73d917357b810d5fffa65aa02e8a"
+  "fingerprint": "48e19cd474d43b459aff7ddb5c45ecfba53ab7cc50848ac2dc4b024c439960bb"
 }

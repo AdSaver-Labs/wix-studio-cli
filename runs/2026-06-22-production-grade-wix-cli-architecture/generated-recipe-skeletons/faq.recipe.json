@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "recipeId": "skeleton.faq.wix-test-site",
+  "generatedAt": "2026-06-22T14:08:09.055Z",
+  "sourceSpecFingerprint": "482892c4ce27ce308f5d3bbfc28d3734ba2dec1d2aefa8cec428fa1f10f7328d",
+  "operation": "content.faq.add",
+  "target": {
+    "environment": "non-client-wix-test-site",
+    "page": "/faq",
+    "sectionType": "faq",
+    "publishAllowed": false
+  },
+  "preconditions": [
+    "Use only a non-client Wix test site until QA Manager PASS exists.",
+    "Open the intended Wix Studio editor tab in a user-owned browser session.",
+    "Run context-pack/read-only-proof before mutation.",
+    "Resolve selectors with /selectors/evidence-compatible proof before every click/edit.",
+    "Do not publish, attach domains, mutate payments/orders/bookings, or change SEO indexing/canonical/redirect settings without explicit scoped approval."
+  ],
+  "selectorStrategy": {
+    "required": [
+      "/inputs/buttons/selectors",
+      "/selectors/evidence-compatible",
+      "/ARIA/data"
+    ],
+    "fallbackOrder": [
+      "stable data-testid/data-hook",
+      "ARIA role+name",
+      "visible label text",
+      "manually approved selector"
+    ],
+    "failClosedOn": [
+      "selector drift",
+      "multiple ambiguous candidates",
+      "unexpected dialog",
+      "missing save proof",
+      "missing phone proof"
+    ]
+  },
+  "steps": [
+    {
+      "id": "resolve-target-surface",
+      "kind": "selector-proof",
+      "intent": "Find target surface for faq",
+      "requiredEvidence": [
+        "/selectors/evidence-compatible",
+        "/ARIA/data"
+      ],
+      "selector": null,
+      "execute": false
+    },
+    {
+      "id": "apply-content-draft",
+      "kind": "manual-or-text-edit-skeleton",
+      "intent": "Apply generated copy/content only after client facts are confirmed.",
+      "contentPreview": {
+        "headline": "Questions before you get started?",
+        "intro": "Clear answers about working with Wix Test Site, timelines, pricing, process, and what happens next.",
+        "blockCount": 4
+      },
+      "selector": null,
+      "execute": false
+    },
+    {
+      "id": "apply-layout-guidance",
+      "kind": "manual-or-studio-layout-skeleton",
+      "intent": "accordion_cards",
+      "design": {
+        "layout": "accordion_cards",
+        "visualStyle": "clean cards with generous spacing and strong contrast",
+        "typography": "use existing site type scale; headings bold, answers readable at 16px+ on phone"
+      },
+      "selector": null,
+      "execute": false
+    },
+    {
+      "id": "apply-safe-animation",
+      "kind": "manual-or-studio-animation-skeleton",
+      "intent": "Apply only subtle non-blocking animations with reduced-motion fallback.",
+      "animation": {
+        "allowed": [
+          "subtle accordion open",
+          "fade-in on scroll"
+        ],
+        "reducedMotion": "instant reveal without movement"
+      },
+      "selector": null,
+      "execute": false
+    },
+    {
+      "id": "save-state-proof",
+      "kind": "save-state-detect",
+      "requiredState": "saved_visible",
+      "execute": false
+    },
+    {
+      "id": "responsive-preview-proof",
+      "kind": "qa-preview-inspect",
+      "viewports": "expanded",
+      "execute": false
+    }
+  ],
+  "verification": {
+    "requiredProof": [
+      "typed spec and routed plan",
+      "editor-preview-inspection PASS",
+      "published-wix-domain-inspection PASS",
+      "responsive-audit PASS with expanded viewport matrix",
+      "phone-primary checks PASS",
+      "large desktop / 27-inch checks PASS",
+      "breakpoint-edge checks PASS",
+      "content/placeholder scan PASS",
+      "SEO/content sanity proof PASS where page-level change applies",
+      "rollback note or restore path captured"
+    ],
+    "twoStepQa": {
+      "status": "REQUIRED",
+      "gates": [
+        {
+          "id": "editor-preview-inspection",
+          "label": "Editor/preview inspection",
+          "requiredEvidence": [
+            "selected Wix Studio editor URL/title",
+            "before screenshot for existing-page mutations",
+            "after editor or preview screenshot",
+            "save-state evidence",
+            "preview URL or preview-rendered page proof",
+            "responsive-audit result for preview/editor-rendered surface"
+          ]
+        },
+        {
+          "id": "published-wix-domain-inspection",
+          "label": "Published Wix-domain inspection",
+          "requiredEvidence": [
+            "published Wix-domain URL, not only editor or preview URL",
+            "browser-rendered screenshots as a real user sees the site",
+            "responsive-audit result against the published Wix-domain URL",
+            "public SEO/content sanity proof",
+            "navigation/CTA/link click sanity proof",
+            "console/runtime warning scan where available"
+          ]
+        }
+      ],
+      "completionRule": "A Wix website/change cannot be called done until both editor/preview inspection and published Wix-domain inspection pass, or a named gate is explicitly BLOCKED with the missing proof."
+    },
+    "responsiveViewports": [
+      "desktop-27in:2560x1440",
+      "desktop-wide:1920x1080",
+      "desktop:1440x900",
+      "desktop-laptop:1366x768",
+      "breakpoint-1280:1280x900",
+      "breakpoint-1279:1279x900",
+      "tablet-landscape:1024x768",
+      "breakpoint-1024:1024x768",
+      "breakpoint-1023:1023x900",
+      "tablet:768x1024",
+      "breakpoint-768:768x1024",
+      "breakpoint-767:767x1024",
+      "breakpoint-480:480x900",
+      "phone-large:430x932",
+      "phone:390x844",
+      "phone-iphone12:375x812",
+      "phone-small:360x800",
+      "breakpoint-320:320x800"
+    ],
+    "commands": [
+      "qa-preview-inspect --execute --cdp-url <editor-or-preview-ws> --out <evidence/preview-qa>",
+      "publish-test-site --execute --approval-manifest <manifest.json> --target <non-client-test-site>",
+      "qa-published-inspect --execute --cdp-url <browser-ws> --url <published-wix-domain-url> --out <evidence/published-qa>"
+    ]
+  },
+  "rollback": {
+    "required": true,
+    "notes": [
+      "restore previous copy/layout from receipt",
+      "remove inserted section/page if needed",
+      "use Wix site history for visual rollback"
+    ]
+  },
+  "risk": {
+    "default": "reversible_ui_candidate",
+    "approvalRequiredIf": [
+      "publish",
+      "domain/DNS",
+      "payment/order/booking mutation",
+      "SEO indexing/canonical/redirect mutation",
+      "legal/policy finalization"
+    ]
+  },
+  "fingerprint": "8f8e325416b76caf0c238ac11ed9f98070ddcfb4d3d513c1a50dd161c87b742a"
+}

@@ -17,6 +17,9 @@ const COMMAND_OPERATION_FALLBACKS = {
   'public-seo-proof': 'seo.public.audit',
   'seo-audit': 'seo.public.audit',
   'verification': 'qa.verdict.request',
+  'qa-preview-inspect': 'qa.preview.inspect',
+  'publish-test-site': 'site.test.publish',
+  'qa-published-inspect': 'qa.published.inspect',
   'manual/wix-template-selection': 'rollback.plan'
 };
 
@@ -27,6 +30,9 @@ const PHASE_OPERATION_FALLBACKS = {
   content: 'content.copy.apply',
   responsive: 'responsive.viewport.capture',
   seo: 'seo.public.audit',
+  'qa-preview': 'qa.preview.inspect',
+  'publish-gate': 'site.test.publish',
+  'qa-published': 'qa.published.inspect',
   handoff: 'qa.verdict.request',
   'booking-data': 'stores.product.update'
 };

@@ -18,7 +18,7 @@ function assert(condition, message, detail = '') {
   }
 }
 
-const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec'];
+const commands = ['chrome-pages', 'inspect', 'snapshot', 'element-map', 'frame-map', 'selector-resolve', 'selectors-evidence', 'click-by-label', 'text-edit', 'responsive-mode', 'responsive-audit', 'qa-preview-inspect', 'qa-published-inspect', 'publish-test-site', 'save-state-detect', 'diagnostics', 'verification', 'read-only-proof', 'context-pack', 'seo-audit', 'public-seo-proof', 'sitemap-check', 'robots-check', 'site-spec-validate', 'site-build-plan', 'capabilities', 'capability-explain', 'route-plan', 'studio-recipe-validate', 'studio-recipe-run', 'templates', 'generate-change-spec', 'generate-recipe-skeleton'];
 for (const command of commands) {
   const args = [command, '--dry-run'];
   if (['selector-resolve', 'selectors-evidence', 'click-by-label'].includes(command)) args.push('--label', 'Preview');
@@ -30,6 +30,7 @@ for (const command of commands) {
   if (command === 'route-plan') args.push('--plan', 'examples/nonexistent-plan-for-dry-run.json');
   if (['studio-recipe-validate', 'studio-recipe-run'].includes(command)) args.push('--recipe', 'recipes/faq-section.example.json');
   if (command === 'generate-change-spec') args.push('--type', 'about', '--business-name', 'AdSaver', '--industry', 'performance marketing', '--audience', 'service businesses', '--goal', 'turn website visitors into qualified leads');
+  if (command === 'generate-recipe-skeleton') args.push('--spec', 'runs/2026-06-22-production-grade-wix-cli-architecture/generated-change-specs/about.spec.json');
   const res = run(args);
   assert(res.status === 0, `${command} dry-run exits 0`, res.stderr || res.stdout);
   assert(res.stdout.includes('"dryRun": true') || ['chrome-pages', 'studio-recipe-validate'].includes(command), `${command} emits dry-run JSON`, res.stdout);
@@ -53,6 +54,10 @@ assert(routed.status === 0, 'route-plan fixture exits 0', routed.stderr || route
 const routedJson = JSON.parse(routed.stdout);
 assert(routedJson.result.operationCount > 0, 'route-plan emits routed actions', routed.stdout);
 assert(routedJson.result.missingCapabilityCount === 0, 'route-plan maps every fixture action to a capability', routed.stdout);
+const routedCommands = routedJson.result.routedActions.map((action) => action.command);
+assert(routedCommands.includes('qa-preview-inspect'), 'route-plan includes mandatory editor/preview QA gate', routed.stdout);
+assert(routedCommands.includes('publish-test-site'), 'route-plan includes approval-gated test-site publish gate', routed.stdout);
+assert(routedCommands.includes('qa-published-inspect'), 'route-plan includes mandatory published Wix-domain QA gate', routed.stdout);
 
 const recipeValidate = run(['studio-recipe-validate', '--recipe', 'recipes/faq-section.example.json']);
 assert(recipeValidate.status === 0, 'studio-recipe-validate exits 0', recipeValidate.stderr || recipeValidate.stdout);
@@ -74,8 +79,24 @@ for (const type of ['faq', 'about', 'header', 'footer', 'product', 'portfolio', 
   const parsed = JSON.parse(generated.stdout);
   assert(parsed.result.changeType === type, `generate-change-spec ${type} reports type`, generated.stdout);
   assert(parsed.result.responsive.policy.includes('phone is primary'), `generate-change-spec ${type} includes phone-primary policy`, generated.stdout);
-  assert(parsed.result.proof.required.includes('responsive-audit PASS with phone primary'), `generate-change-spec ${type} requires responsive proof`, generated.stdout);
+  assert(parsed.result.responsive.viewports.includes('desktop-27in:2560x1440'), `generate-change-spec ${type} includes 27-inch desktop viewport`, generated.stdout);
+  assert(parsed.result.responsive.viewports.includes('breakpoint-320:320x800'), `generate-change-spec ${type} includes 320px breakpoint edge`, generated.stdout);
+  assert(parsed.result.proof.required.includes('responsive-audit PASS with expanded viewport matrix'), `generate-change-spec ${type} requires expanded responsive proof`, generated.stdout);
+  assert(parsed.result.proof.required.includes('editor-preview-inspection PASS'), `generate-change-spec ${type} requires editor/preview inspection`, generated.stdout);
+  assert(parsed.result.proof.required.includes('published-wix-domain-inspection PASS'), `generate-change-spec ${type} requires published Wix-domain inspection`, generated.stdout);
 }
+
+const skeletonSpec = join(tmpdir(), `wix-cli-about-spec-${Date.now()}.json`);
+const generatedAbout = run(['generate-change-spec', '--type', 'about', '--business-name', 'AdSaver', '--industry', 'performance marketing', '--out', skeletonSpec]);
+assert(generatedAbout.status === 0, 'generate-change-spec writes skeleton source spec', generatedAbout.stderr || generatedAbout.stdout);
+const skeleton = run(['generate-recipe-skeleton', '--spec', skeletonSpec]);
+assert(skeleton.status === 0, 'generate-recipe-skeleton exits 0', skeleton.stderr || skeleton.stdout);
+const skeletonJson = JSON.parse(skeleton.stdout).result;
+assert(skeletonJson.selectorStrategy.required.includes('/inputs/buttons/selectors'), 'recipe skeleton requires /inputs/buttons/selectors', skeleton.stdout);
+assert(skeletonJson.selectorStrategy.required.includes('/selectors/evidence-compatible'), 'recipe skeleton requires /selectors/evidence-compatible', skeleton.stdout);
+assert(skeletonJson.selectorStrategy.required.includes('/ARIA/data'), 'recipe skeleton requires /ARIA/data', skeleton.stdout);
+assert(skeletonJson.verification.twoStepQa.gates.some((gate) => gate.id === 'published-wix-domain-inspection'), 'recipe skeleton requires published Wix-domain QA gate', skeleton.stdout);
+assert(skeletonJson.verification.responsiveViewports.length >= 18, 'recipe skeleton carries expanded viewport matrix', skeleton.stdout);
 
 const noApproval = run(['click-by-label', '--label', 'Publish', '--execute', '--cdp-url', 'ws://127.0.0.1:9/devtools/page/fake']);
 assert(noApproval.status === 3, 'publish-like execute without approval is blocked', noApproval.stderr || noApproval.stdout);
